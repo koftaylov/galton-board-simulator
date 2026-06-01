@@ -25,6 +25,7 @@ let isPaused = false;
 let rafId = null;
 let timeoutIds = [];
 let savedTrails = [];
+let isPathSavingEnabled = false;
 const pathCanvas = document.createElement('canvas');
 const pathCtx = pathCanvas.getContext('2d');
 
@@ -228,7 +229,7 @@ const drawSoftTrail = (targetCtx, trail, opacity = 1, color = { r: 74, g: 222, b
 };
 
 const savePathTrail = (path, color) => {
-  if (!path || path.length < 2) return;
+  if (!isPathSavingEnabled || !path || path.length < 2) return;
   savedTrails.push({ trail: path.map(point => ({ ...point })), color });
   repaintSavedPaths();
 };
@@ -701,6 +702,7 @@ const startSimulation = () => {
   // Reset for new simulation
   cancelFlag = false;
   isPaused = false;
+  isPathSavingEnabled = !!pathToggle?.checked;
   if (pauseButton) pauseButton.textContent = 'Pause';
   timeoutIds = [];
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
