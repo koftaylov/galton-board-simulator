@@ -612,14 +612,15 @@ const stopSimulation = () => {
   if (rafId) cancelAnimationFrame(rafId);
   timeoutIds.forEach(id => clearTimeout(id));
   timeoutIds = [];
-  boardStatus.textContent = 'Stopping...';
-  generateButton.disabled = false;
+  boardStatus.textContent = 'Stopped';
+  if (currentAnimation) currentAnimation.active = [];
 };
 
 const startSimulation = () => {
-  if (currentAnimation && currentAnimation.active && currentAnimation.active.length > 0) {
-    stopSimulation();
-  }
+  // Stop existing simulation if any
+  stopSimulation();
+
+  // Reset for new simulation
   cancelFlag = false;
   timeoutIds = [];
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
@@ -628,7 +629,6 @@ const startSimulation = () => {
   updateCanvasHeight(levels);
 
   boardStatus.textContent = 'Simulating...';
-  generateButton.disabled = true;
 
   currentLayout = null;
   resizeCanvas();
