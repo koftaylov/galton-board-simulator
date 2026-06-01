@@ -149,18 +149,7 @@ const drawBoard = (layout, activeBall = null) => {
 
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
-  ctx.beginPath();
-  ctx.moveTo(24, layout.bottom);
-  ctx.lineTo(layout.width - 24, layout.bottom);
-  ctx.stroke();
-
-  for (let i = 0; i <= layout.rows.length; i += 1) {
-    const x = layout.center + (i - layout.rows.length / 2) * layout.pegSpacing;
-    ctx.beginPath();
-    ctx.moveTo(x, layout.bottom);
-    ctx.lineTo(x, layout.bottom + 32);
-    ctx.stroke();
-  }
+  // baseline and tick marks removed to keep canvas minimal per user request
 
   for (const row of layout.rows) {
     for (const peg of row) {
