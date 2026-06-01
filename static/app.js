@@ -5,7 +5,6 @@ const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
 const boardCanvas = document.getElementById('boardCanvas');
 const boardStatus = document.getElementById('boardStatus');
-const stats = document.getElementById('stats');
 const ctx = boardCanvas.getContext('2d');
 
 const devicePixelRatio = window.devicePixelRatio || 1;
@@ -133,13 +132,8 @@ const simulateBoard = (balls, levels) => {
   return { bins, paths };
 };
 
-const renderStats = (balls, levels, bins) => {
-  stats.innerHTML = `
-    <div class="stat-card"><strong>Balls</strong><div>${balls.toLocaleString()}</div></div>
-    <div class="stat-card"><strong>Levels</strong><div>${levels}</div></div>
-    <div class="stat-card"><strong>Bins</strong><div>${bins.length}</div></div>
-  `;
-};
+// renderStats removed - stats cards removed from UI per user request
+const renderStats = (balls, levels, bins) => {};
 
 const drawBoard = (layout, activeBall = null) => {
   ctx.clearRect(0, 0, layout.width, layout.height);
