@@ -240,7 +240,9 @@ const buildLayout = (levels) => {
   const pegSpacing = Math.min(54, width / (levels + 4));
   const center = width / 2;
   const rows = [];
-  const selectedWildcards = getSelectedWildcardTypes();
+  
+  // All possible types for random assignment
+  const wildcardPool = ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos'];
 
   for (let row = 0; row < levels; row += 1) {
     const items = row + 1;
@@ -249,15 +251,10 @@ const buildLayout = (levels) => {
     for (let col = 0; col < items; col += 1) {
       const x = center + (col - row / 2) * pegSpacing;
       let type = 'normal';
-      // Assign wildcard type with ~15% probability if any are selected
-      if (selectedWildcards.length > 0 && Math.random() < 0.15) {
-        let chosen = selectedWildcards[Math.floor(Math.random() * selectedWildcards.length)];
-        if (chosen === 'wildcard') {
-          const others = selectedWildcards.filter(t => t !== 'wildcard');
-          const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos'];
-          chosen = pool[Math.floor(Math.random() * pool.length)];
-        }
-        type = chosen;
+      
+      // Assign wildcard type with ~15% probability
+      if (Math.random() < 0.15) {
+        type = wildcardPool[Math.floor(Math.random() * wildcardPool.length)];
       }
       rowPositions.push({ x, y, type });
     }
@@ -272,6 +269,7 @@ const simulateBallPath = (levels, rightBias) => {
   let color = { ...START_COLOR };
   const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
   const turns = [];
+  const selectedWildcards = getSelectedWildcardTypes();
 
   for (let row = 0; row < levels; row += 1) {
     const peg = currentLayout.rows[row][index];
@@ -281,32 +279,33 @@ const simulateBallPath = (levels, rightBias) => {
     
     let moveRight = Math.random() < rightBias;
 
-    // Wildcard: Mirror
-    if (peg.type === 'mirror') {
-      moveRight = !moveRight;
-    }
-    // Wildcard: Magnet (pull toward center)
-    else if (peg.type === 'magnet') {
-      if (index < row / 2) moveRight = true;
-      else if (index > row / 2) moveRight = false;
-    }
-    // Wildcard: Repeller (push away from center)
-    else if (peg.type === 'repeller') {
-      if (index < row / 2) moveRight = false;
-      else if (index > row / 2) moveRight = true;
-      else moveRight = Math.random() < 0.5; // at center, push randomly
-    }
-    // Wildcard: Chaos (ignore bias)
-    else if (peg.type === 'chaos') {
-      moveRight = Math.random() < 0.5;
-    }
-    // Wildcard: Teleporter (jump to another valid peg position at same level)
-    else if (peg.type === 'teleporter') {
-      const prevIndex = index;
-      index = Math.floor(Math.random() * (row + 1));
-      const targetPeg = currentLayout.rows[row][index];
-      // Add a jump point to the path (we'll just jump instantly in animation for now)
-      path.push({ x: targetPeg.x, y: targetPeg.y - (PEG_R + BALL_R - 1), jump: true });
+    // Only apply wildcard effect if its type is selected in the UI
+    if (peg.type !== 'normal' && selectedWildcards.includes(peg.type)) {
+      // Wildcard: Mirror
+      if (peg.type === 'mirror') {
+        moveRight = !moveRight;
+      }
+      // Wildcard: Magnet (pull toward center)
+      else if (peg.type === 'magnet') {
+        if (index < row / 2) moveRight = true;
+        else if (index > row / 2) moveRight = false;
+      }
+      // Wildcard: Repeller (push away from center)
+      else if (peg.type === 'repeller') {
+        if (index < row / 2) moveRight = false;
+        else if (index > row / 2) moveRight = true;
+        else moveRight = Math.random() < 0.5; // at center, push randomly
+      }
+      // Wildcard: Chaos (ignore bias)
+      else if (peg.type === 'chaos') {
+        moveRight = Math.random() < 0.5;
+      }
+      // Wildcard: Teleporter (jump to another valid peg position at same level)
+      else if (peg.type === 'teleporter') {
+        index = Math.floor(Math.random() * (row + 1));
+        const targetPeg = currentLayout.rows[row][index];
+        path.push({ x: targetPeg.x, y: targetPeg.y - (PEG_R + BALL_R - 1), jump: true });
+      }
     }
 
     turns.push(moveRight ? 'right' : 'left');
@@ -369,13 +368,17 @@ const drawBoard = (layout, activeBall = null) => {
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
   // baseline and tick marks removed to keep canvas minimal per user request
 
+  const selectedWildcards = getSelectedWildcardTypes();
+
   for (const row of layout.rows) {
     for (const peg of row) {
       ctx.beginPath();
-      ctx.fillStyle = (peg.type && WILDCARD_COLORS[peg.type]) ? WILDCARD_COLORS[peg.type] : '#94a3b8';
+      // Only show color if the wildcard type is enabled in the UI
+      const isEnabled = peg.type && peg.type !== 'normal' && selectedWildcards.includes(peg.type);
+      ctx.fillStyle = (isEnabled && WILDCARD_COLORS[peg.type]) ? WILDCARD_COLORS[peg.type] : '#94a3b8';
       ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.strokeStyle = isEnabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)';
       ctx.stroke();
     }
   }
@@ -645,13 +648,15 @@ turnColorToggle.addEventListener('change', () => {
 });
 wildcardTypeInputs.forEach(input => {
   input.addEventListener('change', () => {
-    // Only refresh layout if not currently animating, or if we want to show immediate change
-    // For now, let's just refresh the layout if a simulation isn't active
+    // If not animating, we can refresh the layout to show new peg types immediately
     if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
       const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
       currentLayout = buildLayout(levels);
       drawBoard(currentLayout, null);
       drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
+    } else {
+      // If animating, just redraw to update peg colors visually
+      drawBoard(currentLayout, currentAnimation.active);
     }
   });
 });
