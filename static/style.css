@@ -204,6 +204,19 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
+.button-group {
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.button-group button {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 8px;
+  font-size: 13px;
+}
+
 button {
   min-height: 52px;
   padding: 12px 20px;
