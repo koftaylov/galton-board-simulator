@@ -6,6 +6,7 @@ const biasValueInput = document.getElementById('biasValue');
 const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
+const pathToggle = document.getElementById('pathToggle');
 const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
 const launchCounter = document.getElementById('launchCounter');
 const boardCanvas = document.getElementById('boardCanvas');
@@ -19,6 +20,8 @@ let currentLayout = null;
 let cancelFlag = false;
 let rafId = null;
 let timeoutIds = [];
+const pathCanvas = document.createElement('canvas');
+const pathCtx = pathCanvas.getContext('2d');
 
 const PEG_R = 6;
 const BALL_R = 8;
@@ -84,6 +87,9 @@ const resizeCanvas = () => {
   const rect = boardCanvas.getBoundingClientRect();
   boardCanvas.width = Math.floor(rect.width * devicePixelRatio);
   boardCanvas.height = Math.floor(rect.height * devicePixelRatio);
+  pathCanvas.width = boardCanvas.width;
+  pathCanvas.height = boardCanvas.height;
+  pathCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 };
@@ -96,6 +102,46 @@ const getRightBias = () => clamp(parseInt(biasInput?.value, 10) || 0, 0, 100) / 
 const updateCanvasHeight = (levels) => {
   const height = Math.ceil(BASE_TOP + HISTOGRAM_RESERVED_HEIGHT + BASE_ROW_SPACING * (levels + 1));
   boardCanvas.style.height = `${Math.max(BASE_CANVAS_HEIGHT, height)}px`;
+};
+
+const clearSavedPaths = () => {
+  const width = pathCanvas.width / devicePixelRatio;
+  const height = pathCanvas.height / devicePixelRatio;
+  pathCtx.clearRect(0, 0, width, height);
+};
+
+const drawSoftTrail = (targetCtx, trail, opacity = 1) => {
+  if (!trail || trail.length < 2) return;
+  targetCtx.save();
+  targetCtx.lineCap = 'round';
+  targetCtx.lineJoin = 'round';
+  targetCtx.shadowColor = `rgba(74, 222, 128, ${0.22 * opacity})`;
+  targetCtx.shadowBlur = 12;
+  targetCtx.strokeStyle = `rgba(74, 222, 128, ${0.16 * opacity})`;
+  targetCtx.lineWidth = 10;
+  targetCtx.beginPath();
+  targetCtx.moveTo(trail[0].x, trail[0].y);
+  for (let i = 1; i < trail.length; i += 1) {
+    const prev = trail[i - 1];
+    const point = trail[i];
+    const midX = (prev.x + point.x) / 2;
+    const midY = (prev.y + point.y) / 2;
+    targetCtx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+  }
+  const last = trail[trail.length - 1];
+  targetCtx.lineTo(last.x, last.y);
+  targetCtx.stroke();
+
+  targetCtx.shadowBlur = 0;
+  targetCtx.strokeStyle = `rgba(187, 247, 208, ${0.16 * opacity})`;
+  targetCtx.lineWidth = 3;
+  targetCtx.stroke();
+  targetCtx.restore();
+};
+
+const savePathTrail = (path) => {
+  if (!path || path.length < 2) return;
+  drawSoftTrail(pathCtx, path, 0.85);
 };
 
 const buildLayout = (levels) => {
@@ -177,6 +223,14 @@ const drawBoard = (layout, activeBall = null) => {
   ctx.clearRect(0, 0, layout.width, layout.height);
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, layout.width, layout.height);
+
+  if (pathToggle?.checked) {
+    ctx.drawImage(pathCanvas, 0, 0, layout.width, layout.height);
+    const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
+    for (const ball of activeBalls) {
+      drawSoftTrail(ctx, ball.trail, 1);
+    }
+  }
 
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
@@ -271,6 +325,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       y: result.path[0].y,
       amplitude: 18,
       spawnedNext: false,
+      trail: [{ x: result.path[0].x, y: result.path[0].y }],
     };
   };
 
@@ -351,6 +406,12 @@ const runAnimation = (totalBalls, levels, layout) => {
       const arc = Math.sin(Math.PI * t) * active.amplitude;
       active.x = from.x + (to.x - from.x) * t;
       active.y = from.y + (to.y - from.y) * t - arc;
+      const lastTrailPoint = active.trail[active.trail.length - 1];
+      const dx = active.x - lastTrailPoint.x;
+      const dy = active.y - lastTrailPoint.y;
+      if ((dx * dx) + (dy * dy) >= 16) {
+        active.trail.push({ x: active.x, y: active.y });
+      }
 
       if (t >= 1) {
         active.step += 1;
@@ -370,6 +431,8 @@ const runAnimation = (totalBalls, levels, layout) => {
 
         if (active.step >= active.path.length - 1) {
           animationBins[active.bin] += 1;
+          active.trail.push({ x: active.x, y: active.y });
+          savePathTrail(active.trail);
           landedCount += 1;
           activeBalls.splice(i, 1);
 
@@ -419,6 +482,7 @@ const startSimulation = () => {
 
   currentLayout = null;
   resizeCanvas();
+  clearSavedPaths();
   currentLayout = buildLayout(levels);
 
   renderStats(balls, levels, Array(levels + 1).fill(0));
@@ -432,9 +496,13 @@ const startSimulation = () => {
 
 generateButton.addEventListener('click', startSimulation);
 stopButton.addEventListener('click', stopSimulation);
+pathToggle.addEventListener('change', () => {
+  if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+});
 levelsInput.addEventListener('change', () => {
   updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
   resizeCanvas();
+  clearSavedPaths();
 });
 biasInput.addEventListener('input', () => syncBiasInputs(biasInput));
 biasValueInput.addEventListener('input', () => syncBiasInputs(biasValueInput));

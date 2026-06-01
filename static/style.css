@@ -150,7 +150,8 @@ button:hover {
   background: #ef4444;
 }
 
-.sound-control {
+.sound-control,
+.path-control {
   display: flex;
   align-items: center;
   justify-content: center;
