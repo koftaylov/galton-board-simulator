@@ -4,6 +4,7 @@ const speedInput = document.getElementById('speed');
 const biasInput = document.getElementById('bias');
 const biasValueInput = document.getElementById('biasValue');
 const generateButton = document.getElementById('generate');
+const pauseButton = document.getElementById('pause');
 const stopButton = document.getElementById('stop');
 const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
 const pathToggle = document.getElementById('pathToggle');
@@ -20,6 +21,7 @@ const devicePixelRatio = window.devicePixelRatio || 1;
 let currentAnimation = null;
 let currentLayout = null;
 let cancelFlag = false;
+let isPaused = false;
 let rafId = null;
 let timeoutIds = [];
 let savedTrails = [];
@@ -541,6 +543,11 @@ const runAnimation = (totalBalls, levels, layout) => {
       return;
     }
 
+    if (isPaused) {
+      rafId = requestAnimationFrame(animateFrame);
+      return;
+    }
+
     const launchMode = getLaunchMode();
     frameCount += 1;
     if (nextIndex < totalBalls) {
@@ -666,11 +673,25 @@ const runAnimation = (totalBalls, levels, layout) => {
 
 const stopSimulation = () => {
   cancelFlag = true;
+  isPaused = false;
+  if (pauseButton) pauseButton.textContent = 'Pause';
   if (rafId) cancelAnimationFrame(rafId);
   timeoutIds.forEach(id => clearTimeout(id));
   timeoutIds = [];
   boardStatus.textContent = 'Stopped';
   if (currentAnimation) currentAnimation.active = [];
+  clearSavedPaths();
+  if (currentLayout) {
+    drawBoard(currentLayout, null);
+    drawBinsOnCanvas(currentLayout, Array(currentLayout.rows.length + 1).fill(0));
+  }
+};
+
+const togglePause = () => {
+  if (!currentAnimation || !currentAnimation.active) return;
+  if (currentAnimation.active.length === 0 && nextIndex >= totalBalls) return;
+  isPaused = !isPaused;
+  if (pauseButton) pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
 };
 
 const startSimulation = () => {
@@ -679,6 +700,8 @@ const startSimulation = () => {
 
   // Reset for new simulation
   cancelFlag = false;
+  isPaused = false;
+  if (pauseButton) pauseButton.textContent = 'Pause';
   timeoutIds = [];
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
   const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
@@ -702,6 +725,7 @@ const startSimulation = () => {
 };
 
 generateButton.addEventListener('click', startSimulation);
+if (pauseButton) pauseButton.addEventListener('click', togglePause);
 stopButton.addEventListener('click', stopSimulation);
 pathToggle.addEventListener('change', () => {
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);

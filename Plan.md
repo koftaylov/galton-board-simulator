@@ -17,7 +17,7 @@
   - [x] Implement Wildcard: randomly chooses one enabled wildcard behavior.
   - [ ] Tune wildcard density and placement rules.
   - [ ] Add visual/audio feedback when a wildcard activates.
-- [ ] Add button Pause to pause execution. Button Stop shell stop execution and remove all balls and pathes.
+- [x] Add button Pause to pause execution. Button Stop shell stop execution and remove all balls and pathes.
 - [ ] Do not save path if it is not turned on from very beginning.
 - [ ] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
 - [ ] Live probability heatmap: pegs and buckets glow based on how often they are hit.
