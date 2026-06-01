@@ -11,8 +11,8 @@
   - [x] Implement Magnet: pulls balls toward the center.
   - [x] Implement Repeller: pushes balls away from the center.
   - [x] Implement Teleporter: jumps balls to another valid peg/path position.
-  - [ ] Implement Splitter: duplicates a ball into two paths.
-  - [ ] Implement Sticky: slows a ball temporarily after contact.
+  - [x] Implement Splitter: duplicates a ball into two paths.
+  - [x] Implement Sticky: slows a ball temporarily after contact.
   - [x] Implement Chaos: ignores current bias and chooses randomly.
   - [x] Implement Wildcard: randomly chooses one enabled wildcard behavior.
   - [ ] Tune wildcard density and placement rules.

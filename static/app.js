@@ -264,15 +264,25 @@ const buildLayout = (levels) => {
   return { width, height, top, bottom, rowSpacing, pegSpacing, center, rows };
 };
 
-const simulateBallPath = (levels, rightBias) => {
-  let index = 0;
-  let color = { ...START_COLOR };
-  const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
+const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, startColor = null) => {
+  let index = startIndex;
+  let color = startColor ? { ...startColor } : { ...START_COLOR };
+  const path = [];
   const turns = [];
+  const indexAtStep = []; // Track horizontal index at each row
   const selectedWildcards = getSelectedWildcardTypes();
   const wildcardActive = selectedWildcards.includes('wildcard');
 
-  for (let row = 0; row < levels; row += 1) {
+  if (startRow === 0) {
+    path.push({ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) });
+  } else {
+    // Starting mid-board (e.g. after a split)
+    const prevPeg = currentLayout.rows[startRow - 1][startIndex];
+    path.push({ x: prevPeg.x, y: prevPeg.y - (PEG_R + BALL_R - 1) });
+  }
+
+  for (let row = startRow; row < levels; row += 1) {
+    indexAtStep.push(index);
     const peg = currentLayout.rows[row][index];
     // target just touching the peg so ball appears to contact it
     const touchY = peg.y - (PEG_R + BALL_R - 1);
@@ -319,7 +329,7 @@ const simulateBallPath = (levels, rightBias) => {
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   path.push({ x: finalX, y: currentLayout.bottom + 18 });
 
-  return { path, bin: index, color, turns };
+  return { path, bin: index, color, turns, indexAtStep };
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -462,12 +472,15 @@ const runAnimation = (totalBalls, levels, layout) => {
       bin: result.bin,
       color: result.color,
       turns: result.turns,
+      indexAtStep: result.indexAtStep,
       step: 0,
       progress: 0,
       x: result.path[0].x,
       y: result.path[0].y,
       amplitude: 18,
       spawnedNext: false,
+      hasSplit: false,
+      stickySteps: 0,
       trail: [{ x: result.path[0].x, y: result.path[0].y }],
     };
   };
@@ -543,7 +556,11 @@ const runAnimation = (totalBalls, levels, layout) => {
       const active = activeBalls[i];
       const from = active.path[active.step];
       const to = active.path[active.step + 1];
-      const framesPerStep = getFramesPerStep();
+      
+      // Sticky effect: slow down if the ball is currently stuck
+      const speedMult = active.stickySteps > 0 ? 2.5 : 1;
+      const framesPerStep = getFramesPerStep() * speedMult;
+      
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
       const arc = Math.sin(Math.PI * t) * active.amplitude;
@@ -559,10 +576,51 @@ const runAnimation = (totalBalls, levels, layout) => {
       if (t >= 1) {
         active.step += 1;
         active.progress = 0;
+        
+        // Decrement sticky steps
+        if (active.stickySteps > 0) active.stickySteps -= 1;
+
         const turnDirection = active.turns[active.step - 1];
         if (turnDirection) {
           playTurnSoundIfEnabled(turnDirection, active.step - 1);
         }
+
+        // Check for Splitter and Sticky wildcards upon peg contact
+        if (active.step < active.path.length - 1) {
+          // At this point, step has just incremented. active.path[step] is the point just touched.
+          // The peg is currentLayout.rows[active.step - 1][active.indexAtStep]
+          // But simulateBallPath already pre-calculates everything. 
+          // We need to know which peg was just hit.
+          const rowIdx = active.step - 1;
+          const colIdx = active.indexAtStep[rowIdx];
+          const peg = currentLayout.rows[rowIdx][colIdx];
+          
+          const selectedWildcards = getSelectedWildcardTypes();
+          const wildcardActive = selectedWildcards.includes('wildcard');
+          const isEffectEnabled = peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
+
+          if (isEffectEnabled) {
+            if (peg.type === 'sticky') {
+              active.stickySteps = 2; // slow for next 2 rows
+            } else if (peg.type === 'splitter' && !active.hasSplit) {
+              // Mark current ball so it doesn't split infinitely
+              active.hasSplit = true;
+              // Spawn sibling ball starting from NEXT row
+              const sibling = makeActiveBall(
+                nextIndex, 
+                simulateBallPath(levels, getRightBias(), rowIdx + 1, colIdx, active.color)
+              );
+              if (sibling) {
+                sibling.hasSplit = true; // Sibling also shouldn't split immediately
+                activeBalls.push(sibling);
+                nextIndex += 1;
+                launchedCount += 1;
+                updateLaunchCounter(launchedCount, totalBalls);
+              }
+            }
+          }
+        }
+
         const launchLevel = getLaunchLevel(launchMode);
 
         if (
