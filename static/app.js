@@ -270,6 +270,7 @@ const simulateBallPath = (levels, rightBias) => {
   const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
   const turns = [];
   const selectedWildcards = getSelectedWildcardTypes();
+  const wildcardActive = selectedWildcards.includes('wildcard');
 
   for (let row = 0; row < levels; row += 1) {
     const peg = currentLayout.rows[row][index];
@@ -279,8 +280,10 @@ const simulateBallPath = (levels, rightBias) => {
     
     let moveRight = Math.random() < rightBias;
 
-    // Only apply wildcard effect if its type is selected in the UI
-    if (peg.type !== 'normal' && selectedWildcards.includes(peg.type)) {
+    // Apply effect if specific type is selected OR if the generic 'Wildcard' randomizer is selected
+    const isEffectEnabled = peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
+
+    if (isEffectEnabled) {
       // Wildcard: Mirror
       if (peg.type === 'mirror') {
         moveRight = !moveRight;
