@@ -722,8 +722,6 @@ const runAnimation = (totalBalls, levels, layout) => {
     currentAnimation = { active: activeBalls };
     boardStatus.textContent = `Animating ball ${Math.min(nextIndex, totalBalls)} of ${totalBalls}`;
     drawBoard(layout, activeBalls);
-    // Draw current animated bin counts under the board explicitly to be safe
-    drawBinsOnCanvas(layout, currentBins);
 
     if (activeBalls.length === 0 && nextIndex >= totalBalls) {
       completeAnimation();
@@ -836,7 +834,12 @@ biasValueInput.addEventListener('input', () => {
 });
 window.addEventListener('DOMContentLoaded', () => {
   syncBiasInputs(biasInput);
-  updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
+  const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
+  updateCanvasHeight(levels);
   resizeCanvas();
-  startSimulation();
+  
+  // Initialize idle state
+  currentLayout = buildLayout(levels);
+  currentBins = Array(levels + 1).fill(0);
+  drawBoard(currentLayout, null);
 });
