@@ -17,18 +17,28 @@ A high-performance desktop application that visualizes the Galton board (bean ma
 
 ## Technology Stack
 
-- **Language**: Rust
+- **Primary language**: Rust
 - **Rendering**: wgpu (cross-platform GPU acceleration)
-- **UI**: egui (immediate-mode GUI)
+- **Desktop UI**: egui (immediate-mode GUI)
 - **Audio**: rodio (sound playback)
 - **Build**: Cargo
 
-### Alternative Python Web Version
+### Current Browser UI Stack
 
-A lightweight Python + FastAPI version is also included.
-- `app.py` serves a browser-based histogram UI
-- `static/` contains HTML, CSS, and JavaScript UI assets
-- `requirements.txt` lists `fastapi` and `uvicorn`
+A lightweight Python + FastAPI browser version is actively supported alongside the Rust desktop app.
+- **Backend**: Python + FastAPI (`app.py`)
+- **Frontend**: HTML + CSS + Vanilla JavaScript
+- **Visualization**: HTML5 Canvas for the Galton board and histogram
+- **Sound**: WebAudio for bounce sound effects
+- **Server**: Uvicorn for local development
+- **Static assets**: `static/index.html`, `static/style.css`, `static/app.js`
+
+### Alternative Desktop Rust Version
+
+The Rust native version remains available for GPU-accelerated desktop rendering.
+- `Cargo.toml` defines Rust dependencies
+- `src/` contains the native app code and simulation logic
+- `assets/sounds/` contains desktop sound assets
 
 ## Project Structure
 
@@ -158,6 +168,16 @@ Test with 1,000,000 balls to verify performance:
 - [ ] Statistical analysis overlay
 - [ ] Save/load simulation states
 - [ ] Cross-platform binary builds
+
+## Current Todo
+
+1. [x] Add mode selector (Finish, Level 5, All, Avalanche)
+2. [x] Increase height of histogram by 50%
+3. [x] Allow obstacles to sit in wider space when increasing amount of levels by 50%
+4. [x] Make a selector of speed of balls
+5. [x] Make a bit more space between obstacles
+6. [x] Add selector to select bias (left or right, between 0 and 100, so if it's 50 - it 50% chance ball to select right, 100 - 100% ball select right, etc.) so it's possible to make not normal distribution
+7. [x] Draw path of balls and save it off screen
 
 ## License
 

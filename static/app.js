@@ -8,6 +8,7 @@ const stopButton = document.getElementById('stop');
 const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
 const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
+const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
 const launchCounter = document.getElementById('launchCounter');
 const boardCanvas = document.getElementById('boardCanvas');
@@ -37,6 +38,9 @@ const BASE_TOP = 48;
 const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
 
 const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
+const getSelectedWildcardTypes = () => wildcardTypeInputs
+  .filter(input => input.checked)
+  .map(input => input.value);
 const playClickIfEnabled = () => {
   if (getSoundMode() === 'off') return;
   try {

@@ -5,6 +5,18 @@
 - [x] Turn coloring: left turns tint the ball one color, right turns another, with the final ball color becoming a blended path fingerprint.
 - [x] Path sonification: left and right bounces play different tones so each ball path becomes a small melody.
 - [ ] Wildcard obstacles: add special pegs with unusual behavior such as Mirror, Magnet, Repeller, Teleporter, Splitter, Sticky, and Chaos.
+  - [x] Add wildcard selector UI with checkboxes for each type and a random Wildcard option.
+  - [ ] Color wildcard obstacle pegs for debugging and readability.
+  - [ ] Implement Mirror: flips the chosen left/right direction.
+  - [ ] Implement Magnet: pulls balls toward the center.
+  - [ ] Implement Repeller: pushes balls away from the center.
+  - [ ] Implement Teleporter: jumps balls to another valid peg/path position.
+  - [ ] Implement Splitter: duplicates a ball into two paths.
+  - [ ] Implement Sticky: slows a ball temporarily after contact.
+  - [ ] Implement Chaos: ignores current bias and chooses randomly.
+  - [ ] Implement Wildcard: randomly chooses one enabled wildcard behavior.
+  - [ ] Tune wildcard density and placement rules.
+  - [ ] Add visual/audio feedback when a wildcard activates.
 - [ ] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
 - [ ] Live probability heatmap: pegs and buckets glow based on how often they are hit.
 - [ ] Ghost distribution overlay: draw the expected binomial or normal curve behind the histogram.

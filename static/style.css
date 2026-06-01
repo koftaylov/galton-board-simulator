@@ -144,6 +144,61 @@ input[type="range"] {
   accent-color: #38bdf8;
 }
 
+.wildcard-selector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+}
+
+.wildcard-selector legend {
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.wildcard-selector label {
+  min-width: 0;
+}
+
+.wildcard-selector input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wildcard-selector span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wildcard-selector input:checked + span {
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.18);
+  color: #fed7aa;
+}
+
+.wildcard-selector input:focus-visible + span {
+  outline: 2px solid #fdba74;
+  outline-offset: 2px;
+}
+
 button {
   min-height: 52px;
   padding: 12px 20px;

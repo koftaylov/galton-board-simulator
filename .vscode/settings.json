@@ -4,6 +4,10 @@
         "content": true,
         "Path(r'c:\\Users\\kofta\\OneDrive\\=code\\standard": true,
         "r'c:\\Users\\kofta\\OneDrive\\=code\\standard": true,
-        "PY": true
+        "PY": true,
+        "/^node --check \"static/app\\.js\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }
