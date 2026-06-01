@@ -197,8 +197,9 @@ const drawBinsOnCanvas = (layout, bins) => {
 
 const renderLabels = (bins, layout) => {
   if (!labelsContainer || !layout) return;
-  const w = Math.floor(layout.pegSpacing);
-  labelsContainer.style.gridTemplateColumns = `repeat(${bins.length}, ${w}px)`;
+  const columnWidth = Math.floor(layout.pegSpacing);
+  labelsContainer.style.width = `${bins.length * columnWidth}px`;
+  labelsContainer.style.gridTemplateColumns = `repeat(${bins.length}, ${columnWidth}px)`;
   labelsContainer.innerHTML = '';
   const total = bins.reduce((s, v) => s + v, 0) || 0;
   for (let i = 0; i < bins.length; i++) {
