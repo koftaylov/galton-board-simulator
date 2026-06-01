@@ -1,5 +1,6 @@
 const ballsInput = document.getElementById('balls');
 const levelsInput = document.getElementById('levels');
+const speedInput = document.getElementById('speed');
 const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
@@ -154,6 +155,18 @@ const getLaunchLevel = (launchMode) => {
   if (launchMode === 'level5') return 5;
   return null;
 };
+const getFramesPerStep = () => {
+  const speed = speedInput?.value || 'normal';
+  if (speed === 'slow') return 42;
+  if (speed === 'fast') return 4;
+  return 14;
+};
+const getAvalancheLaunchGapFrames = () => {
+  const speed = speedInput?.value || 'normal';
+  if (speed === 'slow') return 10;
+  if (speed === 'fast') return 1;
+  return 4;
+};
 const updateLaunchCounter = (launched, total) => {
   if (!launchCounter) return;
   launchCounter.textContent = `Launched ${launched} / ${total}`;
@@ -242,8 +255,6 @@ const runAnimation = (paths, layout, bins) => {
   let frameCount = 0;
   let launchedCount = 0;
   const activeBalls = [];
-  const framesPerStep = 14;
-  const avalancheLaunchGapFrames = 4;
   const animationBins = Array(bins.length).fill(0);
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
@@ -322,7 +333,7 @@ const runAnimation = (paths, layout, bins) => {
     if (nextIndex < paths.length) {
       if (launchMode === 'all') {
         while (nextIndex < paths.length) startNextBall();
-      } else if (isAvalancheMode(launchMode) && frameCount % avalancheLaunchGapFrames === 0) {
+      } else if (isAvalancheMode(launchMode) && frameCount % getAvalancheLaunchGapFrames() === 0) {
         startNextBall();
       }
     }
@@ -333,6 +344,7 @@ const runAnimation = (paths, layout, bins) => {
       const active = activeBalls[i];
       const from = active.path[active.step];
       const to = active.path[active.step + 1];
+      const framesPerStep = getFramesPerStep();
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
       const arc = Math.sin(Math.PI * t) * active.amplitude;

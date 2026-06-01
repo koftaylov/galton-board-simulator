@@ -99,7 +99,8 @@ body {
   outline-offset: 2px;
 }
 
-input[type="number"] {
+input[type="number"],
+select {
   width: 100%;
   box-sizing: border-box;
   padding: 10px 12px;
@@ -107,6 +108,11 @@ input[type="number"] {
   border-radius: 10px;
   background: #0f172a;
   color: #e2e8f0;
+}
+
+select {
+  min-height: 40px;
+  cursor: pointer;
 }
 
 button {
