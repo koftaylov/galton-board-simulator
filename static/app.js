@@ -9,7 +9,28 @@ const stopButton = document.getElementById('stop');
 const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
 const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
+const ghostToggle = document.getElementById('ghostToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
+
+const factorials = [1];
+const getFactorial = (n) => {
+  if (n < 0) return 0;
+  if (factorials[n]) return factorials[n];
+  for (let i = factorials.length; i <= n; i++) {
+    factorials[i] = factorials[i - 1] * i;
+  }
+  return factorials[n];
+};
+
+const getCombinations = (n, k) => {
+  if (k < 0 || k > n) return 0;
+  // Use a more numerically stable version if levels were high, but 1-20 is fine for direct factorial
+  return getFactorial(n) / (getFactorial(k) * getFactorial(n - k));
+};
+
+const getBinomialProb = (n, k, p) => {
+  return getCombinations(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+};
 const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
 const launchCounter = document.getElementById('launchCounter');
 const boardCanvas = document.getElementById('boardCanvas');
@@ -440,6 +461,42 @@ const drawBinsOnCanvas = (layout, bins) => {
 
   // render labels in DOM so they are never clipped by canvas
   renderLabels(bins, layout);
+
+  // Draw Ghost Overlay (Binomial Distribution Curve)
+  if (isPathSavingEnabled && ghostToggle?.checked) {
+    const levels = binCount - 1;
+    const p = getRightBias();
+    
+    // Calculate theoretical probabilities
+    const theoreticalProbs = [];
+    let theoreticalMaxProb = 0;
+    for (let i = 0; i <= levels; i++) {
+      const prob = getBinomialProb(levels, i, p);
+      theoreticalProbs.push(prob);
+      theoreticalMaxProb = Math.max(theoreticalMaxProb, prob);
+    }
+    
+    ctx.beginPath();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.setLineDash([5, 5]);
+
+    for (let i = 0; i <= levels; i++) {
+      const xCenter = layout.center + (i - levels / 2) * layout.pegSpacing;
+      // Scale curve height relative to the histogram's max height
+      const prob = theoreticalProbs[i];
+      const h = (prob / theoreticalMaxProb) * (areaHeight - 8);
+      const y = areaBottom - h;
+      
+      if (i === 0) ctx.moveTo(xCenter, y);
+      else {
+        // Curve through centers
+        ctx.lineTo(xCenter, y);
+      }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 };
 
 const renderLabels = (bins, layout) => {
@@ -735,6 +792,9 @@ pathToggle.addEventListener('change', () => {
 });
 turnColorToggle.addEventListener('change', () => {
   repaintSavedPaths();
+  if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+});
+ghostToggle.addEventListener('change', () => {
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 wildcardTypeInputs.forEach(input => {
