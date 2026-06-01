@@ -199,7 +199,6 @@ const renderLabels = (bins, layout) => {
   if (!labelsContainer || !layout) return;
   const columnWidth = Math.floor(layout.pegSpacing);
   labelsContainer.style.width = `${bins.length * columnWidth}px`;
-  labelsContainer.style.gridTemplateColumns = `repeat(${bins.length}, ${columnWidth}px)`;
   labelsContainer.innerHTML = '';
   const total = bins.reduce((s, v) => s + v, 0) || 0;
   for (let i = 0; i < bins.length; i++) {
@@ -207,6 +206,7 @@ const renderLabels = (bins, layout) => {
     const pct = total > 0 ? Math.round((value / total) * 100) : 0;
     const el = document.createElement('div');
     el.className = 'label';
+    el.style.width = `${columnWidth}px`;
     el.innerHTML = `<div class="pct">${pct}%</div><div class="cnt">${value}</div>`;
     labelsContainer.appendChild(el);
   }
