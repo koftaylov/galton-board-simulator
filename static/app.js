@@ -37,6 +37,17 @@ const BASE_LEVELS = 12;
 const BASE_TOP = 48;
 const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
 
+const WILDCARD_COLORS = {
+  mirror: '#06b6d4',      // cyan-400
+  magnet: '#ef4444',      // red-500
+  repeller: '#3b82f6',    // blue-500
+  teleporter: '#a855f7',  // purple-500
+  splitter: '#10b981',    // emerald-500
+  sticky: '#f59e0b',      // amber-500
+  chaos: '#ec4899',       // pink-500
+  wildcard: '#ffffff',    // white
+};
+
 const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
 const getSelectedWildcardTypes = () => wildcardTypeInputs
   .filter(input => input.checked)
@@ -229,6 +240,7 @@ const buildLayout = (levels) => {
   const pegSpacing = Math.min(54, width / (levels + 4));
   const center = width / 2;
   const rows = [];
+  const selectedWildcards = getSelectedWildcardTypes();
 
   for (let row = 0; row < levels; row += 1) {
     const items = row + 1;
@@ -236,7 +248,18 @@ const buildLayout = (levels) => {
     const rowPositions = [];
     for (let col = 0; col < items; col += 1) {
       const x = center + (col - row / 2) * pegSpacing;
-      rowPositions.push({ x, y });
+      let type = 'normal';
+      // Assign wildcard type with ~15% probability if any are selected
+      if (selectedWildcards.length > 0 && Math.random() < 0.15) {
+        let chosen = selectedWildcards[Math.floor(Math.random() * selectedWildcards.length)];
+        if (chosen === 'wildcard') {
+          const others = selectedWildcards.filter(t => t !== 'wildcard');
+          const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos'];
+          chosen = pool[Math.floor(Math.random() * pool.length)];
+        }
+        type = chosen;
+      }
+      rowPositions.push({ x, y, type });
     }
     rows.push(rowPositions);
   }
@@ -255,7 +278,37 @@ const simulateBallPath = (levels, rightBias) => {
     // target just touching the peg so ball appears to contact it
     const touchY = peg.y - (PEG_R + BALL_R - 1);
     path.push({ x: peg.x, y: touchY });
-    const moveRight = Math.random() < rightBias;
+    
+    let moveRight = Math.random() < rightBias;
+
+    // Wildcard: Mirror
+    if (peg.type === 'mirror') {
+      moveRight = !moveRight;
+    }
+    // Wildcard: Magnet (pull toward center)
+    else if (peg.type === 'magnet') {
+      if (index < row / 2) moveRight = true;
+      else if (index > row / 2) moveRight = false;
+    }
+    // Wildcard: Repeller (push away from center)
+    else if (peg.type === 'repeller') {
+      if (index < row / 2) moveRight = false;
+      else if (index > row / 2) moveRight = true;
+      else moveRight = Math.random() < 0.5; // at center, push randomly
+    }
+    // Wildcard: Chaos (ignore bias)
+    else if (peg.type === 'chaos') {
+      moveRight = Math.random() < 0.5;
+    }
+    // Wildcard: Teleporter (jump to another valid peg position at same level)
+    else if (peg.type === 'teleporter') {
+      const prevIndex = index;
+      index = Math.floor(Math.random() * (row + 1));
+      const targetPeg = currentLayout.rows[row][index];
+      // Add a jump point to the path (we'll just jump instantly in animation for now)
+      path.push({ x: targetPeg.x, y: targetPeg.y - (PEG_R + BALL_R - 1), jump: true });
+    }
+
     turns.push(moveRight ? 'right' : 'left');
     color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
     if (moveRight) index += 1;
@@ -319,7 +372,7 @@ const drawBoard = (layout, activeBall = null) => {
   for (const row of layout.rows) {
     for (const peg of row) {
       ctx.beginPath();
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = (peg.type && WILDCARD_COLORS[peg.type]) ? WILDCARD_COLORS[peg.type] : '#94a3b8';
       ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.08)';
@@ -590,13 +643,41 @@ turnColorToggle.addEventListener('change', () => {
   repaintSavedPaths();
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
+wildcardTypeInputs.forEach(input => {
+  input.addEventListener('change', () => {
+    // Only refresh layout if not currently animating, or if we want to show immediate change
+    // For now, let's just refresh the layout if a simulation isn't active
+    if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
+      const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
+      currentLayout = buildLayout(levels);
+      drawBoard(currentLayout, null);
+      drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
+    }
+  });
+});
 levelsInput.addEventListener('change', () => {
-  updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
+  const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
+  updateCanvasHeight(levels);
   resizeCanvas();
   clearSavedPaths();
+  if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
+    currentLayout = buildLayout(levels);
+    drawBoard(currentLayout, null);
+    drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
+  }
 });
-biasInput.addEventListener('input', () => syncBiasInputs(biasInput));
-biasValueInput.addEventListener('input', () => syncBiasInputs(biasValueInput));
+biasInput.addEventListener('input', () => {
+  syncBiasInputs(biasInput);
+  if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
+    if (currentLayout) drawBoard(currentLayout, null);
+  }
+});
+biasValueInput.addEventListener('input', () => {
+  syncBiasInputs(biasValueInput);
+  if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
+    if (currentLayout) drawBoard(currentLayout, null);
+  }
+});
 window.addEventListener('DOMContentLoaded', () => {
   syncBiasInputs(biasInput);
   updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));

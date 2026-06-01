@@ -6,17 +6,19 @@
 - [x] Path sonification: left and right bounces play different tones so each ball path becomes a small melody.
 - [ ] Wildcard obstacles: add special pegs with unusual behavior such as Mirror, Magnet, Repeller, Teleporter, Splitter, Sticky, and Chaos.
   - [x] Add wildcard selector UI with checkboxes for each type and a random Wildcard option.
-  - [ ] Color wildcard obstacle pegs for debugging and readability.
-  - [ ] Implement Mirror: flips the chosen left/right direction.
-  - [ ] Implement Magnet: pulls balls toward the center.
-  - [ ] Implement Repeller: pushes balls away from the center.
-  - [ ] Implement Teleporter: jumps balls to another valid peg/path position.
+  - [x] Color wildcard obstacle pegs for debugging and readability.
+  - [x] Implement Mirror: flips the chosen left/right direction.
+  - [x] Implement Magnet: pulls balls toward the center.
+  - [x] Implement Repeller: pushes balls away from the center.
+  - [x] Implement Teleporter: jumps balls to another valid peg/path position.
   - [ ] Implement Splitter: duplicates a ball into two paths.
   - [ ] Implement Sticky: slows a ball temporarily after contact.
-  - [ ] Implement Chaos: ignores current bias and chooses randomly.
-  - [ ] Implement Wildcard: randomly chooses one enabled wildcard behavior.
+  - [x] Implement Chaos: ignores current bias and chooses randomly.
+  - [x] Implement Wildcard: randomly chooses one enabled wildcard behavior.
   - [ ] Tune wildcard density and placement rules.
   - [ ] Add visual/audio feedback when a wildcard activates.
+- [ ] Add button Pause to pause execution. Button Stop shell stop execution and remove all balls and pathes.
+- [ ] Do not save path if it is not turned on from very beginning.
 - [ ] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
 - [ ] Live probability heatmap: pegs and buckets glow based on how often they are hit.
 - [ ] Ghost distribution overlay: draw the expected binomial or normal curve behind the histogram.
