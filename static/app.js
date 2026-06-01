@@ -1,6 +1,8 @@
 const ballsInput = document.getElementById('balls');
 const levelsInput = document.getElementById('levels');
 const speedInput = document.getElementById('speed');
+const biasInput = document.getElementById('bias');
+const biasValueInput = document.getElementById('biasValue');
 const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
@@ -89,6 +91,7 @@ const resizeCanvas = () => {
 window.addEventListener('resize', resizeCanvas);
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const getRightBias = () => clamp(parseInt(biasInput?.value, 10) || 0, 0, 100) / 100;
 
 const updateCanvasHeight = (levels) => {
   const height = Math.ceil(BASE_TOP + HISTOGRAM_RESERVED_HEIGHT + BASE_ROW_SPACING * (levels + 1));
@@ -119,30 +122,23 @@ const buildLayout = (levels) => {
   return { width, height, top, bottom, rowSpacing, pegSpacing, center, rows };
 };
 
-const simulateBoard = (balls, levels) => {
-  const bins = Array(levels + 1).fill(0);
-  const paths = [];
+const simulateBallPath = (levels, rightBias) => {
+  let index = 0;
+  const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
 
-  for (let i = 0; i < balls; i += 1) {
-    let index = 0;
-    const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
-
-    for (let row = 0; row < levels; row += 1) {
-      const peg = currentLayout.rows[row][index];
-      // target just touching the peg so ball appears to contact it
-      const touchY = peg.y - (PEG_R + BALL_R - 1);
-      path.push({ x: peg.x, y: touchY });
-      const moveRight = Math.random() < 0.5;
-      if (moveRight) index += 1;
-    }
-
-    const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
-    path.push({ x: finalX, y: currentLayout.bottom + 18 });
-    bins[index] += 1;
-    paths.push({ path, bin: index });
+  for (let row = 0; row < levels; row += 1) {
+    const peg = currentLayout.rows[row][index];
+    // target just touching the peg so ball appears to contact it
+    const touchY = peg.y - (PEG_R + BALL_R - 1);
+    path.push({ x: peg.x, y: touchY });
+    const moveRight = Math.random() < rightBias;
+    if (moveRight) index += 1;
   }
 
-  return { bins, paths };
+  const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
+  path.push({ x: finalX, y: currentLayout.bottom + 18 });
+
+  return { path, bin: index };
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -170,6 +166,11 @@ const getAvalancheLaunchGapFrames = () => {
 const updateLaunchCounter = (launched, total) => {
   if (!launchCounter) return;
   launchCounter.textContent = `Launched ${launched} / ${total}`;
+};
+const syncBiasInputs = (source) => {
+  const value = clamp(parseInt(source.value, 10) || 0, 0, 100);
+  biasInput.value = value;
+  biasValueInput.value = value;
 };
 
 const drawBoard = (layout, activeBall = null) => {
@@ -249,37 +250,37 @@ const renderLabels = (bins, layout) => {
   }
 };
 
-const runAnimation = (paths, layout, bins) => {
+const runAnimation = (totalBalls, levels, layout) => {
   let nextIndex = 0;
   let landedCount = 0;
   let frameCount = 0;
   let launchedCount = 0;
   const activeBalls = [];
-  const animationBins = Array(bins.length).fill(0);
+  const animationBins = Array(levels + 1).fill(0);
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
 
-  const makeActiveBall = (index) => {
-    const path = paths[index].path;
+  const makeActiveBall = (index, result) => {
     return {
       index,
-      path,
+      path: result.path,
+      bin: result.bin,
       step: 0,
       progress: 0,
-      x: path[0].x,
-      y: path[0].y,
+      x: result.path[0].x,
+      y: result.path[0].y,
       amplitude: 18,
       spawnedNext: false,
     };
   };
 
   const startNextBall = () => {
-    if (nextIndex >= paths.length) return null;
-    const active = makeActiveBall(nextIndex);
+    if (nextIndex >= totalBalls) return null;
+    const active = makeActiveBall(nextIndex, simulateBallPath(levels, getRightBias()));
     activeBalls.push(active);
     nextIndex += 1;
     launchedCount += 1;
-    updateLaunchCounter(launchedCount, paths.length);
+    updateLaunchCounter(launchedCount, totalBalls);
     return active;
   };
 
@@ -287,7 +288,7 @@ const runAnimation = (paths, layout, bins) => {
     boardStatus.textContent = 'Simulation complete';
     currentAnimation = { active: null };
     drawBoard(layout, null);
-    drawBinsOnCanvas(layout, bins);
+    drawBinsOnCanvas(layout, animationBins);
     generateButton.disabled = false;
   };
 
@@ -299,18 +300,18 @@ const runAnimation = (paths, layout, bins) => {
       return;
     }
 
-    if (paths.length === 0) {
+    if (totalBalls === 0) {
       completeAnimation();
       return;
     }
 
     if (getLaunchMode() === 'all') {
-      while (nextIndex < paths.length) startNextBall();
+      while (nextIndex < totalBalls) startNextBall();
     } else {
       startNextBall();
     }
 
-    boardStatus.textContent = `Animating ${paths.length} ball${paths.length === 1 ? '' : 's'}`;
+    boardStatus.textContent = `Animating ${totalBalls} ball${totalBalls === 1 ? '' : 's'}`;
     currentAnimation = { active: activeBalls };
     rafId = requestAnimationFrame(animateFrame);
   };
@@ -324,15 +325,15 @@ const runAnimation = (paths, layout, bins) => {
     }
 
     if (activeBalls.length === 0) {
-      if (nextIndex >= paths.length) completeAnimation();
+      if (nextIndex >= totalBalls) completeAnimation();
       return;
     }
 
     const launchMode = getLaunchMode();
     frameCount += 1;
-    if (nextIndex < paths.length) {
+    if (nextIndex < totalBalls) {
       if (launchMode === 'all') {
-        while (nextIndex < paths.length) startNextBall();
+        while (nextIndex < totalBalls) startNextBall();
       } else if (isAvalancheMode(launchMode) && frameCount % getAvalancheLaunchGapFrames() === 0) {
         startNextBall();
       }
@@ -368,8 +369,7 @@ const runAnimation = (paths, layout, bins) => {
         }
 
         if (active.step >= active.path.length - 1) {
-          const bin = paths[active.index].bin;
-          animationBins[bin] += 1;
+          animationBins[active.bin] += 1;
           landedCount += 1;
           activeBalls.splice(i, 1);
 
@@ -381,12 +381,12 @@ const runAnimation = (paths, layout, bins) => {
     if (shouldPlayImpact) playClickIfEnabled();
 
     currentAnimation = { active: activeBalls };
-    boardStatus.textContent = `Animating ball ${Math.min(nextIndex, paths.length)} of ${paths.length}`;
+    boardStatus.textContent = `Animating ball ${Math.min(nextIndex, totalBalls)} of ${totalBalls}`;
     drawBoard(layout, activeBalls);
     // draw current animated bin counts under the board
     drawBinsOnCanvas(layout, animationBins);
 
-    if (landedCount >= paths.length) {
+    if (landedCount >= totalBalls) {
       completeAnimation();
       return;
     }
@@ -421,14 +421,13 @@ const startSimulation = () => {
   resizeCanvas();
   currentLayout = buildLayout(levels);
 
-  const { bins, paths } = simulateBoard(balls, levels);
-  renderStats(balls, levels, bins);
+  renderStats(balls, levels, Array(levels + 1).fill(0));
   // show empty canvas histogram initially (no bars until balls land)
 
   currentAnimation = { active: null };
   drawBoard(currentLayout, null);
   drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
-  runAnimation(paths, currentLayout, bins);
+  runAnimation(balls, levels, currentLayout);
 };
 
 generateButton.addEventListener('click', startSimulation);
@@ -437,7 +436,10 @@ levelsInput.addEventListener('change', () => {
   updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
   resizeCanvas();
 });
+biasInput.addEventListener('input', () => syncBiasInputs(biasInput));
+biasValueInput.addEventListener('input', () => syncBiasInputs(biasValueInput));
 window.addEventListener('DOMContentLoaded', () => {
+  syncBiasInputs(biasInput);
   updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
   resizeCanvas();
   startSimulation();

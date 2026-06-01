@@ -115,6 +115,22 @@ select {
   cursor: pointer;
 }
 
+.bias-control {
+  grid-column: 1 / -1;
+}
+
+.bias-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 10px;
+  align-items: center;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: #38bdf8;
+}
+
 button {
   min-height: 52px;
   padding: 12px 20px;
