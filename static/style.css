@@ -76,7 +76,7 @@ button:hover {
 
 .board-canvas {
   width: 100%;
-  min-height: 360px;
+  min-height: 520px; /* increased to reserve space for histogram labels */
   border-radius: 8px;
   background: transparent; /* blend with page background */
   box-shadow: none;
