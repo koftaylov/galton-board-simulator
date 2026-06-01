@@ -37,7 +37,8 @@ body {
   color: #cbd5e1;
 }
 
-.mode-selector {
+.mode-selector,
+.sound-selector {
   display: flex;
   align-items: stretch;
   gap: 4px;
@@ -47,24 +48,28 @@ body {
   border: 0;
 }
 
-.mode-selector legend {
+.mode-selector legend,
+.sound-selector legend {
   width: 100%;
   margin-bottom: 8px;
   font-size: 14px;
   color: #e2e8f0;
 }
 
-.mode-selector label {
+.mode-selector label,
+.sound-selector label {
   min-width: 0;
 }
 
-.mode-selector input {
+.mode-selector input,
+.sound-selector input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.mode-selector span {
+.mode-selector span,
+.sound-selector span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -80,23 +85,31 @@ body {
   white-space: nowrap;
 }
 
-.mode-selector label:first-of-type span {
+.mode-selector label:first-of-type span,
+.sound-selector label:first-of-type span {
   border-radius: 8px 0 0 8px;
 }
 
-.mode-selector label:last-of-type span {
+.mode-selector label:last-of-type span,
+.sound-selector label:last-of-type span {
   border-radius: 0 8px 8px 0;
 }
 
-.mode-selector input:checked + span {
+.mode-selector input:checked + span,
+.sound-selector input:checked + span {
   border-color: #38bdf8;
   background: #075985;
   color: #f8fafc;
 }
 
-.mode-selector input:focus-visible + span {
+.mode-selector input:focus-visible + span,
+.sound-selector input:focus-visible + span {
   outline: 2px solid #7dd3fc;
   outline-offset: 2px;
+}
+
+.sound-selector span {
+  padding: 0 10px;
 }
 
 input[type="number"],
@@ -274,12 +287,20 @@ button:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sound-selector {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .mode-selector label:first-of-type span,
-  .mode-selector label:last-of-type span {
+  .mode-selector label:last-of-type span,
+  .sound-selector label:first-of-type span,
+  .sound-selector label:last-of-type span {
     border-radius: 8px;
   }
 
-  .mode-selector span {
+  .mode-selector span,
+  .sound-selector span {
     border-radius: 8px;
   }
 }

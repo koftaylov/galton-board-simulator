@@ -5,7 +5,7 @@ const biasInput = document.getElementById('bias');
 const biasValueInput = document.getElementById('biasValue');
 const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
-const soundToggle = document.getElementById('soundToggle');
+const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
 const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
 const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
@@ -36,11 +36,28 @@ const BASE_LEVELS = 12;
 const BASE_TOP = 48;
 const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
 
+const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
 const playClickIfEnabled = () => {
-  if (!soundToggle.checked) return;
+  if (getSoundMode() === 'off') return;
   try {
     if (!window._clickPlayer) window._clickPlayer = createClickPlayer();
     window._clickPlayer.play(0.8);
+  } catch (e) {
+    // ignore
+  }
+};
+const playTurnSoundIfEnabled = (direction, levelIndex = 0) => {
+  const soundMode = getSoundMode();
+  if (soundMode === 'off') return;
+  try {
+    if (!window._clickPlayer) window._clickPlayer = createClickPlayer();
+    if (soundMode === 'sonification') {
+      window._clickPlayer.playTurn(direction, 0.65);
+    } else if (soundMode === 'levels') {
+      window._clickPlayer.playLevel(levelIndex, 0.62);
+    } else {
+      window._clickPlayer.play(0.55);
+    }
   } catch (e) {
     // ignore
   }
@@ -85,7 +102,37 @@ const createClickPlayer = () => {
     src.stop(now + dur + 0.01);
   };
 
-  return { play };
+  const playTurn = (direction, volume = 1) => {
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    const now = ac.currentTime;
+    osc.type = 'sine';
+    osc.frequency.value = direction === 'right' ? 660 : 392;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.035 * volume), now + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+    osc.connect(g);
+    g.connect(ac.destination);
+    osc.start(now);
+    osc.stop(now + 0.11);
+  };
+
+  const playLevel = (levelIndex, volume = 1) => {
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    const now = ac.currentTime;
+    osc.type = 'triangle';
+    osc.frequency.value = 220 * Math.pow(2, Math.min(levelIndex, 18) / 12);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.032 * volume), now + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+    osc.connect(g);
+    g.connect(ac.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  };
+
+  return { play, playTurn, playLevel };
 };
 
 const resizeCanvas = () => {
@@ -197,6 +244,7 @@ const simulateBallPath = (levels, rightBias) => {
   let index = 0;
   let color = { ...START_COLOR };
   const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
+  const turns = [];
 
   for (let row = 0; row < levels; row += 1) {
     const peg = currentLayout.rows[row][index];
@@ -204,6 +252,7 @@ const simulateBallPath = (levels, rightBias) => {
     const touchY = peg.y - (PEG_R + BALL_R - 1);
     path.push({ x: peg.x, y: touchY });
     const moveRight = Math.random() < rightBias;
+    turns.push(moveRight ? 'right' : 'left');
     color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
     if (moveRight) index += 1;
   }
@@ -211,7 +260,7 @@ const simulateBallPath = (levels, rightBias) => {
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   path.push({ x: finalX, y: currentLayout.bottom + 18 });
 
-  return { path, bin: index, color };
+  return { path, bin: index, color, turns };
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -348,6 +397,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       path: result.path,
       bin: result.bin,
       color: result.color,
+      turns: result.turns,
       step: 0,
       progress: 0,
       x: result.path[0].x,
@@ -423,7 +473,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       }
     }
 
-    let shouldPlayImpact = false;
+    let shouldPlayLanding = false;
 
     for (let i = activeBalls.length - 1; i >= 0; i -= 1) {
       const active = activeBalls[i];
@@ -445,7 +495,10 @@ const runAnimation = (totalBalls, levels, layout) => {
       if (t >= 1) {
         active.step += 1;
         active.progress = 0;
-        shouldPlayImpact = true;
+        const turnDirection = active.turns[active.step - 1];
+        if (turnDirection) {
+          playTurnSoundIfEnabled(turnDirection, active.step - 1);
+        }
         const launchLevel = getLaunchLevel(launchMode);
 
         if (
@@ -463,6 +516,7 @@ const runAnimation = (totalBalls, levels, layout) => {
           active.trail.push({ x: active.x, y: active.y });
           savePathTrail(active.trail, active.color);
           landedCount += 1;
+          shouldPlayLanding = true;
           activeBalls.splice(i, 1);
 
           if (launchMode === 'finish' && active.index === nextIndex - 1) startNextBall();
@@ -470,7 +524,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       }
     }
 
-    if (shouldPlayImpact) playClickIfEnabled();
+    if (shouldPlayLanding) playClickIfEnabled();
 
     currentAnimation = { active: activeBalls };
     boardStatus.textContent = `Animating ball ${Math.min(nextIndex, totalBalls)} of ${totalBalls}`;

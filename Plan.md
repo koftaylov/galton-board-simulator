@@ -3,7 +3,7 @@
 ## Backlog
 
 - [x] Turn coloring: left turns tint the ball one color, right turns another, with the final ball color becoming a blended path fingerprint.
-- [ ] Path sonification: left and right bounces play different tones so each ball path becomes a small melody.
+- [x] Path sonification: left and right bounces play different tones so each ball path becomes a small melody.
 - [ ] Wildcard obstacles: add special pegs with unusual behavior such as Mirror, Magnet, Repeller, Teleporter, Splitter, Sticky, and Chaos.
 - [ ] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
 - [ ] Live probability heatmap: pegs and buckets glow based on how often they are hit.
