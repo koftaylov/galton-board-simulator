@@ -3,34 +3,45 @@ body {
   font-family: Inter, system-ui, sans-serif;
   background: #0f172a;
   color: #e2e8f0;
+  min-height: 100vh;
 }
 
 .app-shell {
-  max-width: 960px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
   padding: 24px;
 }
 
 
 
 .controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 18px 12px;
+  margin: 0;
 }
 
 .controls label {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 140px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
 }
 
 .mode-selector {
   display: flex;
   align-items: stretch;
   gap: 4px;
+  grid-column: 1 / -1;
   margin: 0;
   padding: 0;
   border: 0;
@@ -57,7 +68,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 78px;
+  min-width: 0;
   height: 40px;
   padding: 0 12px;
   border: 1px solid #334155;
@@ -66,6 +77,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .mode-selector label:first-of-type span {
@@ -89,6 +101,7 @@ body {
 
 input[type="number"] {
   width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   border: 1px solid #334155;
   border-radius: 10px;
@@ -97,6 +110,7 @@ input[type="number"] {
 }
 
 button {
+  min-height: 52px;
   padding: 12px 20px;
   border: none;
   border-radius: 10px;
@@ -117,7 +131,11 @@ button:hover {
 .sound-control {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  grid-column: 1 / -1;
+  min-height: 52px;
+  box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(255,255,255,0.02);
@@ -127,6 +145,8 @@ button:hover {
 .launch-counter {
   display: flex;
   align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1;
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid #334155;
@@ -138,7 +158,11 @@ button:hover {
 }
 
 .board-section {
-  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
 }
 
 
@@ -149,7 +173,8 @@ button:hover {
 
 .board-canvas {
   width: 100%;
-  min-height: 520px; /* increased to reserve space for histogram labels */
+  max-width: 1040px;
+  min-height: 568px; /* keeps board space and adds 50% more histogram room */
   border-radius: 8px;
   background: transparent; /* blend with page background */
   box-shadow: none;
@@ -198,6 +223,42 @@ button:hover {
   border-radius: 14px;
   background: rgba(148, 163, 184, 0.12);
   min-width: 160px;
+}
+
+@media (max-width: 920px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 24px;
+  }
+
+  .controls {
+    width: 100%;
+  }
+
+  .board-canvas {
+    min-height: 560px;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .mode-selector {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mode-selector label:first-of-type span,
+  .mode-selector label:last-of-type span {
+    border-radius: 8px;
+  }
+
+  .mode-selector span {
+    border-radius: 8px;
+  }
 }
 
 

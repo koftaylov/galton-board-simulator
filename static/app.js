@@ -19,6 +19,11 @@ let timeoutIds = [];
 
 const PEG_R = 6;
 const BALL_R = 8;
+const HISTOGRAM_RESERVED_HEIGHT = 144;
+const BASE_CANVAS_HEIGHT = 568;
+const BASE_LEVELS = 12;
+const BASE_TOP = 48;
+const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
 
 const playClickIfEnabled = () => {
   if (!soundToggle.checked) return;
@@ -84,11 +89,16 @@ window.addEventListener('resize', resizeCanvas);
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
+const updateCanvasHeight = (levels) => {
+  const height = Math.ceil(BASE_TOP + HISTOGRAM_RESERVED_HEIGHT + BASE_ROW_SPACING * (levels + 1));
+  boardCanvas.style.height = `${Math.max(BASE_CANVAS_HEIGHT, height)}px`;
+};
+
 const buildLayout = (levels) => {
   const width = boardCanvas.width / devicePixelRatio;
   const height = boardCanvas.height / devicePixelRatio;
   const top = 48;
-  const bottom = height - 96;
+  const bottom = height - HISTOGRAM_RESERVED_HEIGHT;
   const rowSpacing = (bottom - top) / (levels + 1);
   const pegSpacing = Math.min(54, width / (levels + 4));
   const center = width / 2;
@@ -384,12 +394,14 @@ const startSimulation = () => {
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
   const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
   updateLaunchCounter(0, balls);
+  updateCanvasHeight(levels);
 
   boardStatus.textContent = 'Simulating...';
   generateButton.disabled = true;
 
-  currentLayout = buildLayout(levels);
+  currentLayout = null;
   resizeCanvas();
+  currentLayout = buildLayout(levels);
 
   const { bins, paths } = simulateBoard(balls, levels);
   renderStats(balls, levels, bins);
@@ -403,4 +415,12 @@ const startSimulation = () => {
 
 generateButton.addEventListener('click', startSimulation);
 stopButton.addEventListener('click', stopSimulation);
-window.addEventListener('DOMContentLoaded', () => { resizeCanvas(); startSimulation(); });
+levelsInput.addEventListener('change', () => {
+  updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
+  resizeCanvas();
+});
+window.addEventListener('DOMContentLoaded', () => {
+  updateCanvasHeight(clamp(parseInt(levelsInput.value, 10) || 12, 1, 20));
+  resizeCanvas();
+  startSimulation();
+});
