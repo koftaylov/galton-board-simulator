@@ -86,6 +86,32 @@ button:hover {
   margin-top: 24px;
 }
 
+.labels {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 12px;
+  justify-content: center;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.label .pct {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.label .cnt {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
 .stats {
   display: flex;
   gap: 16px;

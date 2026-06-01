@@ -6,6 +6,7 @@ const soundToggle = document.getElementById('soundToggle');
 const boardCanvas = document.getElementById('boardCanvas');
 const boardStatus = document.getElementById('boardStatus');
 const ctx = boardCanvas.getContext('2d');
+const labelsContainer = document.getElementById('labels');
 
 const devicePixelRatio = window.devicePixelRatio || 1;
 let currentAnimation = null;
@@ -190,19 +191,23 @@ const drawBinsOnCanvas = (layout, bins) => {
     }
   }
 
-  // draw two rows of labels under the bars: first row = percent, second row = count
-  ctx.fillStyle = '#cbd5e1';
-  ctx.font = '12px Inter, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  const pctY = areaBottom + 14; // percent row
-  const cntY = areaBottom + 30; // count row
+  // render labels in DOM so they are never clipped by canvas
+  renderLabels(bins, layout);
+};
 
-  for (let i = 0; i < binCount; i++) {
-    const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+const renderLabels = (bins, layout) => {
+  if (!labelsContainer || !layout) return;
+  const w = Math.floor(layout.pegSpacing);
+  labelsContainer.style.gridTemplateColumns = `repeat(${bins.length}, ${w}px)`;
+  labelsContainer.innerHTML = '';
+  const total = bins.reduce((s, v) => s + v, 0) || 0;
+  for (let i = 0; i < bins.length; i++) {
     const value = bins[i];
     const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-    ctx.fillText(pct + '%', xCenter, pctY);
-    ctx.fillText(value.toString(), xCenter, cntY);
+    const el = document.createElement('div');
+    el.className = 'label';
+    el.innerHTML = `<div class="pct">${pct}%</div><div class="cnt">${value}</div>`;
+    labelsContainer.appendChild(el);
   }
 };
 
