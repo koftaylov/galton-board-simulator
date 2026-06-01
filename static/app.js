@@ -522,7 +522,7 @@ const runAnimation = (totalBalls, levels, layout) => {
   let frameCount = 0;
   let launchedCount = 0;
   const activeBalls = [];
-  const animationBins = Array(levels + 1).fill(0);
+  currentBins = Array(levels + 1).fill(0);
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
 
@@ -561,7 +561,6 @@ const runAnimation = (totalBalls, levels, layout) => {
     boardStatus.textContent = 'Simulation complete';
     currentAnimation = { active: null };
     drawBoard(layout, null);
-    drawBinsOnCanvas(layout, animationBins);
     generateButton.disabled = false;
   };
 
@@ -699,7 +698,7 @@ const runAnimation = (totalBalls, levels, layout) => {
         }
 
         if (active.step >= active.path.length - 1) {
-          animationBins[active.bin] += 1;
+          currentBins[active.bin] += 1;
           active.trail.push({ x: active.x, y: active.y });
           savePathTrail(active.trail, active.color);
           landedCount += 1;
@@ -716,8 +715,6 @@ const runAnimation = (totalBalls, levels, layout) => {
     currentAnimation = { active: activeBalls };
     boardStatus.textContent = `Animating ball ${Math.min(nextIndex, totalBalls)} of ${totalBalls}`;
     drawBoard(layout, activeBalls);
-    // draw current animated bin counts under the board
-    drawBinsOnCanvas(layout, animationBins);
 
     if (activeBalls.length === 0 && nextIndex >= totalBalls) {
       completeAnimation();
@@ -774,13 +771,13 @@ const startSimulation = () => {
   resizeCanvas();
   clearSavedPaths();
   currentLayout = buildLayout(levels);
+  currentBins = Array(levels + 1).fill(0);
 
-  renderStats(balls, levels, Array(levels + 1).fill(0));
+  renderStats(balls, levels, currentBins);
   // show empty canvas histogram initially (no bars until balls land)
 
   currentAnimation = { active: null };
   drawBoard(currentLayout, null);
-  drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
   runAnimation(balls, levels, currentLayout);
 };
 
