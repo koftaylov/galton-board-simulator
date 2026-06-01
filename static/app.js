@@ -372,7 +372,8 @@ const drawBoard = (layout, activeBall = null) => {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, layout.width, layout.height);
 
-  if (pathToggle?.checked) {
+  // Strictly follow the initial session setting AND current toggle
+  if (isPathSavingEnabled && pathToggle?.checked) {
     ctx.drawImage(pathCanvas, 0, 0, layout.width, layout.height);
     const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
     for (const ball of activeBalls) {
