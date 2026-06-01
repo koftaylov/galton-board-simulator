@@ -175,7 +175,9 @@ const drawBinsOnCanvas = (layout, bins) => {
 
   const max = Math.max(...bins, 1);
   const binCount = bins.length;
+  const total = bins.reduce((s, v) => s + v, 0) || 0;
 
+  // draw bars
   for (let i = 0; i < binCount; i++) {
     const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
     const w = Math.floor(layout.pegSpacing * 0.6);
@@ -185,12 +187,22 @@ const drawBinsOnCanvas = (layout, bins) => {
     if (value > 0) {
       ctx.fillStyle = 'rgba(96,165,250,0.95)';
       ctx.fillRect(left, areaBottom - h, w, h);
-      // draw count label below the bar
-      ctx.fillStyle = '#c7f9ff';
-      ctx.font = '12px Inter, system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(value.toString(), xCenter, areaBottom + 16);
     }
+  }
+
+  // draw two rows of labels under the bars: first row = percent, second row = count
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '12px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  const pctY = areaBottom + 14; // percent row
+  const cntY = areaBottom + 30; // count row
+
+  for (let i = 0; i < binCount; i++) {
+    const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+    const value = bins[i];
+    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+    ctx.fillText(pct + '%', xCenter, pctY);
+    ctx.fillText(value.toString(), xCenter, cntY);
   }
 };
 
