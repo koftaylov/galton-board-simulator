@@ -463,7 +463,7 @@ const drawBinsOnCanvas = (layout, bins) => {
   renderLabels(bins, layout);
 
   // Draw Ghost Overlay (Binomial Distribution Curve)
-  if (isPathSavingEnabled && ghostToggle?.checked) {
+  if (ghostToggle?.checked) {
     const levels = binCount - 1;
     const p = getRightBias();
     
@@ -478,7 +478,7 @@ const drawBinsOnCanvas = (layout, bins) => {
     
     ctx.beginPath();
     ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)'; // Increased opacity
     ctx.setLineDash([5, 5]);
 
     for (let i = 0; i <= levels; i++) {
@@ -490,7 +490,6 @@ const drawBinsOnCanvas = (layout, bins) => {
       
       if (i === 0) ctx.moveTo(xCenter, y);
       else {
-        // Curve through centers
         ctx.lineTo(xCenter, y);
       }
     }
