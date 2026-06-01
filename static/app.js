@@ -7,6 +7,7 @@ const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
 const pathToggle = document.getElementById('pathToggle');
+const turnColorToggle = document.getElementById('turnColorToggle');
 const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
 const launchCounter = document.getElementById('launchCounter');
 const boardCanvas = document.getElementById('boardCanvas');
@@ -20,11 +21,15 @@ let currentLayout = null;
 let cancelFlag = false;
 let rafId = null;
 let timeoutIds = [];
+let savedTrails = [];
 const pathCanvas = document.createElement('canvas');
 const pathCtx = pathCanvas.getContext('2d');
 
 const PEG_R = 6;
 const BALL_R = 8;
+const START_COLOR = { r: 56, g: 189, b: 248 };
+const LEFT_TURN_COLOR = { r: 249, g: 115, b: 22 };
+const RIGHT_TURN_COLOR = { r: 168, g: 85, b: 247 };
 const HISTOGRAM_RESERVED_HEIGHT = 144;
 const BASE_CANVAS_HEIGHT = 568;
 const BASE_LEVELS = 12;
@@ -98,6 +103,15 @@ window.addEventListener('resize', resizeCanvas);
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const getRightBias = () => clamp(parseInt(biasInput?.value, 10) || 0, 0, 100) / 100;
+const blendColors = (base, next, amount) => ({
+  r: Math.round(base.r + (next.r - base.r) * amount),
+  g: Math.round(base.g + (next.g - base.g) * amount),
+  b: Math.round(base.b + (next.b - base.b) * amount),
+});
+const colorToRgb = (color) => `rgb(${color.r}, ${color.g}, ${color.b})`;
+const colorToRgba = (color, alpha) => `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+const getBallColor = (ball) => turnColorToggle?.checked ? ball.color : START_COLOR;
+const getTrailColor = (ball) => turnColorToggle?.checked ? ball.color : { r: 74, g: 222, b: 128 };
 
 const updateCanvasHeight = (levels) => {
   const height = Math.ceil(BASE_TOP + HISTOGRAM_RESERVED_HEIGHT + BASE_ROW_SPACING * (levels + 1));
@@ -105,19 +119,29 @@ const updateCanvasHeight = (levels) => {
 };
 
 const clearSavedPaths = () => {
+  savedTrails = [];
   const width = pathCanvas.width / devicePixelRatio;
   const height = pathCanvas.height / devicePixelRatio;
   pathCtx.clearRect(0, 0, width, height);
 };
 
-const drawSoftTrail = (targetCtx, trail, opacity = 1) => {
+const repaintSavedPaths = () => {
+  const width = pathCanvas.width / devicePixelRatio;
+  const height = pathCanvas.height / devicePixelRatio;
+  pathCtx.clearRect(0, 0, width, height);
+  for (const saved of savedTrails) {
+    drawSoftTrail(pathCtx, saved.trail, 0.85, turnColorToggle?.checked ? saved.color : { r: 74, g: 222, b: 128 });
+  }
+};
+
+const drawSoftTrail = (targetCtx, trail, opacity = 1, color = { r: 74, g: 222, b: 128 }) => {
   if (!trail || trail.length < 2) return;
   targetCtx.save();
   targetCtx.lineCap = 'round';
   targetCtx.lineJoin = 'round';
-  targetCtx.shadowColor = `rgba(74, 222, 128, ${0.22 * opacity})`;
+  targetCtx.shadowColor = colorToRgba(color, 0.22 * opacity);
   targetCtx.shadowBlur = 12;
-  targetCtx.strokeStyle = `rgba(74, 222, 128, ${0.16 * opacity})`;
+  targetCtx.strokeStyle = colorToRgba(color, 0.16 * opacity);
   targetCtx.lineWidth = 10;
   targetCtx.beginPath();
   targetCtx.moveTo(trail[0].x, trail[0].y);
@@ -133,15 +157,16 @@ const drawSoftTrail = (targetCtx, trail, opacity = 1) => {
   targetCtx.stroke();
 
   targetCtx.shadowBlur = 0;
-  targetCtx.strokeStyle = `rgba(187, 247, 208, ${0.16 * opacity})`;
+  targetCtx.strokeStyle = colorToRgba(color, 0.18 * opacity);
   targetCtx.lineWidth = 3;
   targetCtx.stroke();
   targetCtx.restore();
 };
 
-const savePathTrail = (path) => {
+const savePathTrail = (path, color) => {
   if (!path || path.length < 2) return;
-  drawSoftTrail(pathCtx, path, 0.85);
+  savedTrails.push({ trail: path.map(point => ({ ...point })), color });
+  repaintSavedPaths();
 };
 
 const buildLayout = (levels) => {
@@ -170,6 +195,7 @@ const buildLayout = (levels) => {
 
 const simulateBallPath = (levels, rightBias) => {
   let index = 0;
+  let color = { ...START_COLOR };
   const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
 
   for (let row = 0; row < levels; row += 1) {
@@ -178,13 +204,14 @@ const simulateBallPath = (levels, rightBias) => {
     const touchY = peg.y - (PEG_R + BALL_R - 1);
     path.push({ x: peg.x, y: touchY });
     const moveRight = Math.random() < rightBias;
+    color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
     if (moveRight) index += 1;
   }
 
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   path.push({ x: finalX, y: currentLayout.bottom + 18 });
 
-  return { path, bin: index };
+  return { path, bin: index, color };
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -228,7 +255,7 @@ const drawBoard = (layout, activeBall = null) => {
     ctx.drawImage(pathCanvas, 0, 0, layout.width, layout.height);
     const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
     for (const ball of activeBalls) {
-      drawSoftTrail(ctx, ball.trail, 1);
+      drawSoftTrail(ctx, ball.trail, 1, getTrailColor(ball));
     }
   }
 
@@ -249,11 +276,12 @@ const drawBoard = (layout, activeBall = null) => {
 
   const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
   for (const ball of activeBalls) {
+    const ballColor = getBallColor(ball);
     ctx.beginPath();
-    ctx.fillStyle = '#38bdf8';
+    ctx.fillStyle = colorToRgb(ballColor);
     ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#7dd3fc';
+    ctx.strokeStyle = colorToRgba(ballColor, 0.65);
     ctx.lineWidth = 2;
     ctx.stroke();
   }
@@ -319,6 +347,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       index,
       path: result.path,
       bin: result.bin,
+      color: result.color,
       step: 0,
       progress: 0,
       x: result.path[0].x,
@@ -432,7 +461,7 @@ const runAnimation = (totalBalls, levels, layout) => {
         if (active.step >= active.path.length - 1) {
           animationBins[active.bin] += 1;
           active.trail.push({ x: active.x, y: active.y });
-          savePathTrail(active.trail);
+          savePathTrail(active.trail, active.color);
           landedCount += 1;
           activeBalls.splice(i, 1);
 
@@ -497,6 +526,10 @@ const startSimulation = () => {
 generateButton.addEventListener('click', startSimulation);
 stopButton.addEventListener('click', stopSimulation);
 pathToggle.addEventListener('change', () => {
+  if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+});
+turnColorToggle.addEventListener('change', () => {
+  repaintSavedPaths();
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 levelsInput.addEventListener('change', () => {
