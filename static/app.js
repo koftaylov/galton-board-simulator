@@ -465,9 +465,10 @@ const runAnimation = (totalBalls, levels, layout) => {
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
 
-  const makeActiveBall = (index, result) => {
+  const makeActiveBall = (index, result, startRow = 0) => {
     return {
       index,
+      startRow,
       path: result.path,
       bin: result.bin,
       color: result.color,
@@ -487,7 +488,7 @@ const runAnimation = (totalBalls, levels, layout) => {
 
   const startNextBall = () => {
     if (nextIndex >= totalBalls) return null;
-    const active = makeActiveBall(nextIndex, simulateBallPath(levels, getRightBias()));
+    const active = makeActiveBall(nextIndex, simulateBallPath(levels, getRightBias()), 0);
     activeBalls.push(active);
     nextIndex += 1;
     launchedCount += 1;
@@ -587,17 +588,14 @@ const runAnimation = (totalBalls, levels, layout) => {
 
         // Check for Splitter and Sticky wildcards upon peg contact
         if (active.step < active.path.length - 1) {
-          // At this point, step has just incremented. active.path[step] is the point just touched.
-          // The peg is currentLayout.rows[active.step - 1][active.indexAtStep]
-          // But simulateBallPath already pre-calculates everything. 
-          // We need to know which peg was just hit.
-          const rowIdx = active.step - 1;
-          const colIdx = active.indexAtStep[rowIdx];
+          // Calculate absolute row and col on the board
+          const rowIdx = active.startRow + active.step - 1;
+          const colIdx = active.indexAtStep[active.step - 1];
           const peg = currentLayout.rows[rowIdx][colIdx];
           
           const selectedWildcards = getSelectedWildcardTypes();
           const wildcardActive = selectedWildcards.includes('wildcard');
-          const isEffectEnabled = peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
+          const isEffectEnabled = peg && peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
 
           if (isEffectEnabled) {
             if (peg.type === 'sticky') {
@@ -608,12 +606,13 @@ const runAnimation = (totalBalls, levels, layout) => {
               // Spawn sibling ball starting from NEXT row
               const sibling = makeActiveBall(
                 nextIndex, 
-                simulateBallPath(levels, getRightBias(), rowIdx + 1, colIdx, active.color)
+                simulateBallPath(levels, getRightBias(), rowIdx + 1, colIdx, active.color),
+                rowIdx + 1
               );
               if (sibling) {
                 sibling.hasSplit = true; // Sibling also shouldn't split immediately
                 activeBalls.push(sibling);
-                nextIndex += 1;
+                // Extra ball launched via split
                 launchedCount += 1;
                 updateLaunchCounter(launchedCount, totalBalls);
               }
@@ -654,7 +653,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     // draw current animated bin counts under the board
     drawBinsOnCanvas(layout, animationBins);
 
-    if (landedCount >= totalBalls) {
+    if (activeBalls.length === 0 && nextIndex >= totalBalls) {
       completeAnimation();
       return;
     }
