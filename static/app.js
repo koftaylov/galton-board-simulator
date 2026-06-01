@@ -242,7 +242,7 @@ const buildLayout = (levels) => {
   const rows = [];
   
   // All possible types for random assignment
-  const wildcardPool = ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos'];
+  const wildcardPool = ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos', 'splitter', 'sticky'];
 
   for (let row = 0; row < levels; row += 1) {
     const items = row + 1;
