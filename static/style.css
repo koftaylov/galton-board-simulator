@@ -124,6 +124,19 @@ button:hover {
   color: #e2e8f0;
 }
 
+.launch-counter {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .board-section {
   margin-bottom: 24px;
 }

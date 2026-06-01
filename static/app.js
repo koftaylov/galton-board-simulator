@@ -4,6 +4,7 @@ const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
 const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
+const launchCounter = document.getElementById('launchCounter');
 const boardCanvas = document.getElementById('boardCanvas');
 const boardStatus = document.getElementById('boardStatus');
 const ctx = boardCanvas.getContext('2d');
@@ -138,6 +139,10 @@ const renderStats = (balls, levels, bins) => {};
 
 const getLaunchMode = () => launchModeInputs.find(input => input.checked)?.value || 'finish';
 const isAvalancheMode = (launchMode) => launchMode === 'avalanche' || launchMode === 'machineGun';
+const updateLaunchCounter = (launched, total) => {
+  if (!launchCounter) return;
+  launchCounter.textContent = `Launched ${launched} / ${total}`;
+};
 
 const drawBoard = (layout, activeBall = null) => {
   ctx.clearRect(0, 0, layout.width, layout.height);
@@ -220,6 +225,7 @@ const runAnimation = (paths, layout, bins, launchMode) => {
   let nextIndex = 0;
   let landedCount = 0;
   let frameCount = 0;
+  let launchedCount = 0;
   const activeBalls = [];
   const framesPerStep = 14;
   const avalancheLaunchGapFrames = 4;
@@ -248,6 +254,8 @@ const runAnimation = (paths, layout, bins, launchMode) => {
     const active = makeActiveBall(nextIndex);
     activeBalls.push(active);
     nextIndex += 1;
+    launchedCount += 1;
+    updateLaunchCounter(launchedCount, paths.length);
     return active;
   };
 
@@ -375,6 +383,7 @@ const startSimulation = () => {
   timeoutIds = [];
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
   const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
+  updateLaunchCounter(0, balls);
 
   boardStatus.textContent = 'Simulating...';
   generateButton.disabled = true;
