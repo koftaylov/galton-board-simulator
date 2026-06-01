@@ -390,6 +390,7 @@ const syncBiasInputs = (source) => {
 };
 
 const drawBoard = (layout, activeBall = null) => {
+  ctx.save();
   ctx.clearRect(0, 0, layout.width, layout.height);
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, layout.width, layout.height);
@@ -434,18 +435,24 @@ const drawBoard = (layout, activeBall = null) => {
     ctx.lineWidth = 2;
     ctx.stroke();
   }
+
+  // ALWAYS redraw bins and ghost curve if they exist
+  if (currentBins && currentBins.length > 0) {
+    drawBinsOnCanvas(layout, currentBins);
+  }
+  ctx.restore();
 };
 
 // Draw buckets and histogram bars on the canvas so they align perfectly
 const drawBinsOnCanvas = (layout, bins) => {
   if (!bins) return;
+  ctx.save();
   const areaTop = layout.bottom + 8;
   const areaBottom = layout.height - 8;
   const areaHeight = Math.max(48, areaBottom - areaTop);
 
   const max = Math.max(...bins, 1);
   const binCount = bins.length;
-  const total = bins.reduce((s, v) => s + v, 0) || 0;
 
   // draw bars
   for (let i = 0; i < binCount; i++) {
@@ -479,7 +486,7 @@ const drawBinsOnCanvas = (layout, bins) => {
     
     ctx.beginPath();
     ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)'; // Increased opacity
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.setLineDash([5, 5]);
 
     for (let i = 0; i <= levels; i++) {
@@ -495,8 +502,8 @@ const drawBinsOnCanvas = (layout, bins) => {
       }
     }
     ctx.stroke();
-    ctx.setLineDash([]);
   }
+  ctx.restore();
 };
 
 const renderLabels = (bins, layout) => {
@@ -715,6 +722,8 @@ const runAnimation = (totalBalls, levels, layout) => {
     currentAnimation = { active: activeBalls };
     boardStatus.textContent = `Animating ball ${Math.min(nextIndex, totalBalls)} of ${totalBalls}`;
     drawBoard(layout, activeBalls);
+    // Draw current animated bin counts under the board explicitly to be safe
+    drawBinsOnCanvas(layout, currentBins);
 
     if (activeBalls.length === 0 && nextIndex >= totalBalls) {
       completeAnimation();
@@ -736,10 +745,8 @@ const stopSimulation = () => {
   timeoutIds = [];
   boardStatus.textContent = 'Stopped';
   if (currentAnimation) currentAnimation.active = [];
-  clearSavedPaths();
   if (currentLayout) {
     drawBoard(currentLayout, null);
-    drawBinsOnCanvas(currentLayout, Array(currentLayout.rows.length + 1).fill(0));
   }
 };
 
@@ -796,15 +803,9 @@ ghostToggle.addEventListener('change', () => {
 });
 wildcardTypeInputs.forEach(input => {
   input.addEventListener('change', () => {
-    // If not animating, we can refresh the layout to show new peg types immediately
-    if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
-      const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
-      currentLayout = buildLayout(levels);
-      drawBoard(currentLayout, null);
-      drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
-    } else {
-      // If animating, just redraw to update peg colors visually
-      drawBoard(currentLayout, currentAnimation.active);
+    // Just redraw the existing layout and bins to show/hide colors
+    if (currentLayout) {
+      drawBoard(currentLayout, currentAnimation?.active || null);
     }
   });
 });
@@ -812,11 +813,13 @@ levelsInput.addEventListener('change', () => {
   const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
   updateCanvasHeight(levels);
   resizeCanvas();
-  clearSavedPaths();
+  
+  // If not animating, we can generate a preview of the new layout
   if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
+    clearSavedPaths();
     currentLayout = buildLayout(levels);
+    currentBins = Array(levels + 1).fill(0);
     drawBoard(currentLayout, null);
-    drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
   }
 });
 biasInput.addEventListener('input', () => {

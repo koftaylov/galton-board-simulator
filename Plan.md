@@ -21,7 +21,7 @@
 - [x] Add button Pause to pause execution. Button Stop shell stop execution and remove all balls and pathes.
 - [x] Do not save path if it is not turned on from very beginning.
 - [ ] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
-- [ ] Ghost distribution overlay: draw the expected binomial or normal curve behind the histogram.
+- [x] Ghost distribution overlay: draw the expected binomial or normal curve behind the histogram.
 - [ ] Deviation mode: color bars based on whether each bucket is above or below its expected count.
 - [ ] Ball families: assign each ball a family or color based on its first turn and track how early choices shape outcomes.
 - [ ] Replay one ball: click a bucket or path to replay a single ball journey slowly with its turn sequence.
