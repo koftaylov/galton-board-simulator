@@ -3,6 +3,7 @@ const levelsInput = document.getElementById('levels');
 const generateButton = document.getElementById('generate');
 const stopButton = document.getElementById('stop');
 const soundToggle = document.getElementById('soundToggle');
+const launchModeInputs = Array.from(document.querySelectorAll('input[name="launchMode"]'));
 const boardCanvas = document.getElementById('boardCanvas');
 const boardStatus = document.getElementById('boardStatus');
 const ctx = boardCanvas.getContext('2d');
@@ -136,6 +137,9 @@ const simulateBoard = (balls, levels) => {
 // renderStats removed - stats cards removed from UI per user request
 const renderStats = (balls, levels, bins) => {};
 
+const getLaunchMode = () => launchModeInputs.find(input => input.checked)?.value || 'finish';
+const isAvalancheMode = (launchMode) => launchMode === 'avalanche' || launchMode === 'machineGun';
+
 const drawBoard = (layout, activeBall = null) => {
   ctx.clearRect(0, 0, layout.width, layout.height);
   ctx.fillStyle = '#0f172a';
@@ -156,10 +160,11 @@ const drawBoard = (layout, activeBall = null) => {
     }
   }
 
-  if (activeBall) {
+  const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
+  for (const ball of activeBalls) {
     ctx.beginPath();
     ctx.fillStyle = '#38bdf8';
-    ctx.arc(activeBall.x, activeBall.y, BALL_R, 0, Math.PI * 2);
+    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#7dd3fc';
     ctx.lineWidth = 2;
@@ -212,16 +217,50 @@ const renderLabels = (bins, layout) => {
   }
 };
 
-const runAnimation = (paths, layout, bins) => {
-  let index = 0;
-  let active = null;
-  let progress = 0;
+const runAnimation = (paths, layout, bins, launchMode) => {
+  let nextIndex = 0;
+  let landedCount = 0;
+  let frameCount = 0;
+  const activeBalls = [];
   const framesPerStep = 14;
+  const avalancheLaunchGapFrames = 4;
   const animationBins = Array(bins.length).fill(0);
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
 
-  const startBall = () => {
+  const makeActiveBall = (index) => {
+    const path = paths[index].path;
+    const triggerStep = Math.min(5, path.length - 1);
+    return {
+      index,
+      path,
+      triggerStep,
+      step: 0,
+      progress: 0,
+      x: path[0].x,
+      y: path[0].y,
+      amplitude: 18,
+      spawnedNext: false,
+    };
+  };
+
+  const startNextBall = () => {
+    if (nextIndex >= paths.length) return null;
+    const active = makeActiveBall(nextIndex);
+    activeBalls.push(active);
+    nextIndex += 1;
+    return active;
+  };
+
+  const completeAnimation = () => {
+    boardStatus.textContent = 'Simulation complete';
+    currentAnimation = { active: null };
+    drawBoard(layout, null);
+    drawBinsOnCanvas(layout, bins);
+    generateButton.disabled = false;
+  };
+
+  const startAnimation = () => {
     if (cancelFlag) {
       boardStatus.textContent = 'Stopped';
       generateButton.disabled = false;
@@ -229,20 +268,19 @@ const runAnimation = (paths, layout, bins) => {
       return;
     }
 
-    if (index >= paths.length) {
-      boardStatus.textContent = 'Simulation complete';
-      currentAnimation = { active: null };
-      drawBoard(layout, null);
-      drawBinsOnCanvas(layout, bins);
-      generateButton.disabled = false;
+    if (paths.length === 0) {
+      completeAnimation();
       return;
     }
 
-    const path = paths[index].path;
-    active = { path, step: 0, x: path[0].x, y: path[0].y, amplitude: 18 };
-    progress = 0;
-    boardStatus.textContent = `Animating ball ${index + 1} of ${paths.length}`;
-    currentAnimation = { active };
+    if (launchMode === 'all') {
+      while (nextIndex < paths.length) startNextBall();
+    } else {
+      startNextBall();
+    }
+
+    boardStatus.textContent = `Animating ${paths.length} ball${paths.length === 1 ? '' : 's'}`;
+    currentAnimation = { active: activeBalls };
     rafId = requestAnimationFrame(animateFrame);
   };
 
@@ -254,41 +292,74 @@ const runAnimation = (paths, layout, bins) => {
       return;
     }
 
-    if (!active) return;
-    const from = active.path[active.step];
-    const to = active.path[active.step + 1];
-    progress += 1 / framesPerStep;
-    const t = Math.min(progress, 1);
-    const arc = Math.sin(Math.PI * t) * active.amplitude;
-    active.x = from.x + (to.x - from.x) * t;
-    active.y = from.y + (to.y - from.y) * t - arc;
-    drawBoard(layout, active);
+    if (activeBalls.length === 0) {
+      if (nextIndex >= paths.length) completeAnimation();
+      return;
+    }
+
+    frameCount += 1;
+    if (
+      isAvalancheMode(launchMode) &&
+      nextIndex < paths.length &&
+      frameCount % avalancheLaunchGapFrames === 0
+    ) {
+      startNextBall();
+    }
+
+    let shouldPlayImpact = false;
+
+    for (let i = activeBalls.length - 1; i >= 0; i -= 1) {
+      const active = activeBalls[i];
+      const from = active.path[active.step];
+      const to = active.path[active.step + 1];
+      active.progress += 1 / framesPerStep;
+      const t = Math.min(active.progress, 1);
+      const arc = Math.sin(Math.PI * t) * active.amplitude;
+      active.x = from.x + (to.x - from.x) * t;
+      active.y = from.y + (to.y - from.y) * t - arc;
+
+      if (t >= 1) {
+        active.step += 1;
+        active.progress = 0;
+        shouldPlayImpact = true;
+
+        if (
+          launchMode === 'level5' &&
+          !active.spawnedNext &&
+          active.step >= active.triggerStep
+        ) {
+          active.spawnedNext = true;
+          startNextBall();
+        }
+
+        if (active.step >= active.path.length - 1) {
+          const bin = paths[active.index].bin;
+          animationBins[bin] += 1;
+          landedCount += 1;
+          activeBalls.splice(i, 1);
+
+          if (launchMode === 'finish') startNextBall();
+        }
+      }
+    }
+
+    if (shouldPlayImpact) playClickIfEnabled();
+
+    currentAnimation = { active: activeBalls };
+    boardStatus.textContent = `Animating ball ${Math.min(nextIndex, paths.length)} of ${paths.length}`;
+    drawBoard(layout, activeBalls);
     // draw current animated bin counts under the board
     drawBinsOnCanvas(layout, animationBins);
 
-    if (t >= 1) {
-      // play a small click for peg/land
-      playClickIfEnabled();
-      active.step += 1;
-      progress = 0;
-      if (active.step >= active.path.length - 1) {
-        const bin = paths[index].bin;
-        animationBins[bin] += 1;
-        // update canvas histogram
-        drawBinsOnCanvas(layout, animationBins);
-        index += 1;
-        active = null;
-        currentAnimation = { active: null };
-        const tId = setTimeout(() => startBall(), 30);
-        timeoutIds.push(tId);
-        return;
-      }
+    if (landedCount >= paths.length) {
+      completeAnimation();
+      return;
     }
 
     rafId = requestAnimationFrame(animateFrame);
   };
 
-  startBall();
+  startAnimation();
 };
 
 const stopSimulation = () => {
@@ -319,7 +390,7 @@ const startSimulation = () => {
   currentAnimation = { active: null };
   drawBoard(currentLayout, null);
   drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
-  runAnimation(paths, currentLayout, bins);
+  runAnimation(paths, currentLayout, bins, getLaunchMode());
 };
 
 generateButton.addEventListener('click', startSimulation);

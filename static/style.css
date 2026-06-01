@@ -27,6 +27,66 @@ body {
   min-width: 140px;
 }
 
+.mode-selector {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mode-selector legend {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.mode-selector label {
+  min-width: 0;
+}
+
+.mode-selector input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-selector span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mode-selector label:first-of-type span {
+  border-radius: 8px 0 0 8px;
+}
+
+.mode-selector label:last-of-type span {
+  border-radius: 0 8px 8px 0;
+}
+
+.mode-selector input:checked + span {
+  border-color: #38bdf8;
+  background: #075985;
+  color: #f8fafc;
+}
+
+.mode-selector input:focus-visible + span {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
 input[type="number"] {
   width: 100%;
   padding: 10px 12px;

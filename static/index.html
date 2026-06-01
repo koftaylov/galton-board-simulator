@@ -19,6 +19,25 @@
         Levels:
         <input id="levels" type="number" min="1" max="20" value="12" />
       </label>
+      <fieldset class="mode-selector" aria-label="Launch mode">
+        <legend>Mode:</legend>
+        <label>
+          <input type="radio" name="launchMode" value="finish" checked />
+          <span>Finish</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="level5" />
+          <span>Level 5</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="all" />
+          <span>All</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="avalanche" />
+          <span>Avalanche</span>
+        </label>
+      </fieldset>
       <button id="generate">Simulate</button>
       <button id="stop" class="stop">Stop</button>
       <label class="sound-control">
