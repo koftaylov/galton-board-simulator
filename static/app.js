@@ -1,0 +1,327 @@
+const ballsInput = document.getElementById('balls');
+const levelsInput = document.getElementById('levels');
+const generateButton = document.getElementById('generate');
+const stopButton = document.getElementById('stop');
+const soundToggle = document.getElementById('soundToggle');
+const boardCanvas = document.getElementById('boardCanvas');
+const boardStatus = document.getElementById('boardStatus');
+const stats = document.getElementById('stats');
+const ctx = boardCanvas.getContext('2d');
+
+const devicePixelRatio = window.devicePixelRatio || 1;
+let currentAnimation = null;
+let currentLayout = null;
+let cancelFlag = false;
+let rafId = null;
+let timeoutIds = [];
+
+const PEG_R = 6;
+const BALL_R = 8;
+
+const playClickIfEnabled = () => {
+  if (!soundToggle.checked) return;
+  try {
+    if (!window._clickPlayer) window._clickPlayer = createClickPlayer();
+    window._clickPlayer.play(0.8);
+  } catch (e) {
+    // ignore
+  }
+};
+// Create a percussive noise-based click player (short burst + lowpass)
+const createClickPlayer = () => {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ac = new AudioCtx();
+
+  const play = (volume = 1) => {
+    const dur = 0.06;
+    const sr = ac.sampleRate;
+    const len = Math.floor(sr * dur);
+    const buffer = ac.createBuffer(1, len, sr);
+    const data = buffer.getChannelData(0);
+    // short noise burst with exponential decay
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.exp(-12 * t);
+      // white noise attenuated and windowed
+      data[i] = (Math.random() * 2 - 1) * env * 0.8;
+    }
+
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1800;
+
+    const g = ac.createGain();
+    g.gain.value = 0.0001;
+    // quick ramp
+    const now = ac.currentTime;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.1 * volume), now + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    src.connect(lp);
+    lp.connect(g);
+    g.connect(ac.destination);
+    src.start();
+    src.stop(now + dur + 0.01);
+  };
+
+  return { play };
+};
+
+const resizeCanvas = () => {
+  const rect = boardCanvas.getBoundingClientRect();
+  boardCanvas.width = Math.floor(rect.width * devicePixelRatio);
+  boardCanvas.height = Math.floor(rect.height * devicePixelRatio);
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+  chart.style.width = rect.width + 'px';
+};
+
+window.addEventListener('resize', resizeCanvas);
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const buildLayout = (levels) => {
+  const width = boardCanvas.width / devicePixelRatio;
+  const height = boardCanvas.height / devicePixelRatio;
+  const top = 48;
+  const bottom = height - 96;
+  const rowSpacing = (bottom - top) / (levels + 1);
+  const pegSpacing = Math.min(54, width / (levels + 4));
+  const center = width / 2;
+  const rows = [];
+
+  for (let row = 0; row < levels; row += 1) {
+    const items = row + 1;
+    const y = top + row * rowSpacing;
+    const rowPositions = [];
+    for (let col = 0; col < items; col += 1) {
+      const x = center + (col - row / 2) * pegSpacing;
+      rowPositions.push({ x, y });
+    }
+    rows.push(rowPositions);
+  }
+
+  return { width, height, top, bottom, rowSpacing, pegSpacing, center, rows };
+};
+
+const simulateBoard = (balls, levels) => {
+  const bins = Array(levels + 1).fill(0);
+  const paths = [];
+  const maxAnimated = Math.min(240, balls);
+
+  for (let i = 0; i < balls; i += 1) {
+    let index = 0;
+    const path = [{ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) }];
+
+    for (let row = 0; row < levels; row += 1) {
+      const peg = currentLayout.rows[row][index];
+      // target just touching the peg so ball appears to contact it
+      const touchY = peg.y - (PEG_R + BALL_R - 1);
+      path.push({ x: peg.x, y: touchY });
+      const moveRight = Math.random() < 0.5;
+      if (moveRight) index += 1;
+    }
+
+    const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
+    path.push({ x: finalX, y: currentLayout.bottom + 18 });
+    bins[index] += 1;
+    if (paths.length < maxAnimated) paths.push({ path, bin: index });
+  }
+
+  return { bins, paths };
+};
+
+const renderStats = (balls, levels, bins) => {
+  stats.innerHTML = `
+    <div class="stat-card"><strong>Balls</strong><div>${balls.toLocaleString()}</div></div>
+    <div class="stat-card"><strong>Levels</strong><div>${levels}</div></div>
+    <div class="stat-card"><strong>Bins</strong><div>${bins.length}</div></div>
+  `;
+};
+
+const drawBoard = (layout, activeBall = null) => {
+  ctx.clearRect(0, 0, layout.width, layout.height);
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, layout.width, layout.height);
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+  ctx.beginPath();
+  ctx.moveTo(24, layout.bottom);
+  ctx.lineTo(layout.width - 24, layout.bottom);
+  ctx.stroke();
+
+  for (let i = 0; i <= layout.rows.length; i += 1) {
+    const x = layout.center + (i - layout.rows.length / 2) * layout.pegSpacing;
+    ctx.beginPath();
+    ctx.moveTo(x, layout.bottom);
+    ctx.lineTo(x, layout.bottom + 32);
+    ctx.stroke();
+  }
+
+  for (const row of layout.rows) {
+    for (const peg of row) {
+      ctx.beginPath();
+      ctx.fillStyle = '#94a3b8';
+      ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.stroke();
+    }
+  }
+
+  if (activeBall) {
+    ctx.beginPath();
+    ctx.fillStyle = '#38bdf8';
+    ctx.arc(activeBall.x, activeBall.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#7dd3fc';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+};
+
+// Draw buckets and histogram bars on the canvas so they align perfectly
+const drawBinsOnCanvas = (layout, bins) => {
+  if (!bins) return;
+  const areaTop = layout.bottom + 8;
+  const areaBottom = layout.height - 8;
+  const areaHeight = Math.max(48, areaBottom - areaTop);
+
+  const max = Math.max(...bins, 1);
+  const binCount = bins.length;
+
+  for (let i = 0; i < binCount; i++) {
+    const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+    const w = Math.floor(layout.pegSpacing * 0.6);
+    const left = xCenter - w / 2;
+    const value = bins[i];
+    const h = Math.round((value / max) * (areaHeight - 8));
+    if (value > 0) {
+      ctx.fillStyle = 'rgba(96,165,250,0.95)';
+      ctx.fillRect(left, areaBottom - h, w, h);
+      // draw count label below the bar
+      ctx.fillStyle = '#c7f9ff';
+      ctx.font = '12px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(value.toString(), xCenter, areaBottom + 16);
+    }
+  }
+};
+
+const runAnimation = (paths, layout, bins) => {
+  let index = 0;
+  let active = null;
+  let progress = 0;
+  const framesPerStep = 14;
+  const animationBins = Array(bins.length).fill(0);
+
+  const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
+
+  const startBall = () => {
+    if (cancelFlag) {
+      boardStatus.textContent = 'Stopped';
+      generateButton.disabled = false;
+      clearAllTimeouts();
+      return;
+    }
+
+    if (index >= paths.length) {
+      boardStatus.textContent = 'Simulation complete';
+      currentAnimation = { active: null };
+      drawBoard(layout, null);
+      drawBinsOnCanvas(layout, bins);
+      generateButton.disabled = false;
+      return;
+    }
+
+    const path = paths[index].path;
+    active = { path, step: 0, x: path[0].x, y: path[0].y, amplitude: 18 };
+    progress = 0;
+    boardStatus.textContent = `Animating ball ${index + 1} of ${paths.length}`;
+    currentAnimation = { active };
+    rafId = requestAnimationFrame(animateFrame);
+  };
+
+  const animateFrame = () => {
+    if (cancelFlag) {
+      if (rafId) cancelAnimationFrame(rafId);
+      boardStatus.textContent = 'Stopped';
+      generateButton.disabled = false;
+      return;
+    }
+
+    if (!active) return;
+    const from = active.path[active.step];
+    const to = active.path[active.step + 1];
+    progress += 1 / framesPerStep;
+    const t = Math.min(progress, 1);
+    const arc = Math.sin(Math.PI * t) * active.amplitude;
+    active.x = from.x + (to.x - from.x) * t;
+    active.y = from.y + (to.y - from.y) * t - arc;
+    drawBoard(layout, active);
+    // draw current animated bin counts under the board
+    drawBinsOnCanvas(layout, animationBins);
+
+    if (t >= 1) {
+      // play a small click for peg/land
+      playClickIfEnabled();
+      active.step += 1;
+      progress = 0;
+      if (active.step >= active.path.length - 1) {
+        const bin = paths[index].bin;
+        animationBins[bin] += 1;
+        // update canvas histogram
+        drawBinsOnCanvas(layout, animationBins);
+        index += 1;
+        active = null;
+        currentAnimation = { active: null };
+        const tId = setTimeout(() => startBall(), 30);
+        timeoutIds.push(tId);
+        return;
+      }
+    }
+
+    rafId = requestAnimationFrame(animateFrame);
+  };
+
+  startBall();
+};
+
+const stopSimulation = () => {
+  cancelFlag = true;
+  if (rafId) cancelAnimationFrame(rafId);
+  timeoutIds.forEach(id => clearTimeout(id));
+  timeoutIds = [];
+  boardStatus.textContent = 'Stopping...';
+  generateButton.disabled = false;
+};
+
+const startSimulation = () => {
+  cancelFlag = false;
+  timeoutIds = [];
+  const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
+  const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
+
+  boardStatus.textContent = 'Simulating...';
+  generateButton.disabled = true;
+
+  currentLayout = buildLayout(levels);
+  resizeCanvas();
+
+  const { bins, paths } = simulateBoard(balls, levels);
+  renderStats(balls, levels, bins);
+  // show empty canvas histogram initially (no bars until balls land)
+
+  currentAnimation = { active: null };
+  drawBoard(currentLayout, null);
+  drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
+  runAnimation(paths, currentLayout, bins);
+};
+
+generateButton.addEventListener('click', startSimulation);
+stopButton.addEventListener('click', stopSimulation);
+window.addEventListener('DOMContentLoaded', () => { resizeCanvas(); startSimulation(); });

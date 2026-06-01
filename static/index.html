@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Standard Distribution Visualization</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <h1>Standard Distribution Visualization</h1>
+      <p>Simulate a Galton board with obstacles, falling balls, and a histogram of the final distribution.</p>
+    </header>
+
+    <section class="controls">
+      <label>
+        Balls:
+        <input id="balls" type="number" min="1" max="1000000" value="200" />
+      </label>
+      <label>
+        Levels:
+        <input id="levels" type="number" min="1" max="20" value="12" />
+      </label>
+      <button id="generate">Simulate</button>
+      <button id="stop" class="stop">Stop</button>
+      <label class="sound-control">
+        <input id="soundToggle" type="checkbox" /> Sound
+      </label>
+    </section>
+
+    <section class="board-section">
+      <div class="board-header">
+        <div>
+          <strong>Galton board</strong>
+          <p>Watch balls drop through the obstacle grid.</p>
+        </div>
+        <div id="boardStatus" class="board-status">Ready</div>
+      </div>
+      <canvas id="boardCanvas" class="board-canvas" aria-label="Galton board simulation"></canvas>
+    </section>
+
+    <section class="stats-section">
+      <div id="stats" class="stats"></div>
+    </section>
+
+    <footer>
+      <p>Built with FastAPI and vanilla JavaScript.</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
