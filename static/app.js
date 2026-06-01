@@ -110,7 +110,6 @@ const buildLayout = (levels) => {
 const simulateBoard = (balls, levels) => {
   const bins = Array(levels + 1).fill(0);
   const paths = [];
-  const maxAnimated = Math.min(240, balls);
 
   for (let i = 0; i < balls; i += 1) {
     let index = 0;
@@ -128,7 +127,7 @@ const simulateBoard = (balls, levels) => {
     const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
     path.push({ x: finalX, y: currentLayout.bottom + 18 });
     bins[index] += 1;
-    if (paths.length < maxAnimated) paths.push({ path, bin: index });
+    paths.push({ path, bin: index });
   }
 
   return { bins, paths };
