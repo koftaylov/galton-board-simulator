@@ -372,12 +372,13 @@ const drawBoard = (layout, activeBall = null) => {
   // baseline and tick marks removed to keep canvas minimal per user request
 
   const selectedWildcards = getSelectedWildcardTypes();
+  const wildcardActive = selectedWildcards.includes('wildcard');
 
   for (const row of layout.rows) {
     for (const peg of row) {
       ctx.beginPath();
-      // Only show color if the wildcard type is enabled in the UI
-      const isEnabled = peg.type && peg.type !== 'normal' && selectedWildcards.includes(peg.type);
+      // Only show color if the specific wildcard type is enabled OR if the random 'Wildcard' toggle is on
+      const isEnabled = peg.type && peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
       ctx.fillStyle = (isEnabled && WILDCARD_COLORS[peg.type]) ? WILDCARD_COLORS[peg.type] : '#94a3b8';
       ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
       ctx.fill();
@@ -616,6 +617,9 @@ const stopSimulation = () => {
 };
 
 const startSimulation = () => {
+  if (currentAnimation && currentAnimation.active && currentAnimation.active.length > 0) {
+    stopSimulation();
+  }
   cancelFlag = false;
   timeoutIds = [];
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
