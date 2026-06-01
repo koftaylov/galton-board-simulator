@@ -149,6 +149,11 @@ const renderStats = (balls, levels, bins) => {};
 
 const getLaunchMode = () => launchModeInputs.find(input => input.checked)?.value || 'finish';
 const isAvalancheMode = (launchMode) => launchMode === 'avalanche' || launchMode === 'machineGun';
+const getLaunchLevel = (launchMode) => {
+  if (launchMode === 'level2') return 2;
+  if (launchMode === 'level5') return 5;
+  return null;
+};
 const updateLaunchCounter = (launched, total) => {
   if (!launchCounter) return;
   launchCounter.textContent = `Launched ${launched} / ${total}`;
@@ -231,7 +236,7 @@ const renderLabels = (bins, layout) => {
   }
 };
 
-const runAnimation = (paths, layout, bins, launchMode) => {
+const runAnimation = (paths, layout, bins) => {
   let nextIndex = 0;
   let landedCount = 0;
   let frameCount = 0;
@@ -245,11 +250,9 @@ const runAnimation = (paths, layout, bins, launchMode) => {
 
   const makeActiveBall = (index) => {
     const path = paths[index].path;
-    const triggerStep = Math.min(5, path.length - 1);
     return {
       index,
       path,
-      triggerStep,
       step: 0,
       progress: 0,
       x: path[0].x,
@@ -290,7 +293,7 @@ const runAnimation = (paths, layout, bins, launchMode) => {
       return;
     }
 
-    if (launchMode === 'all') {
+    if (getLaunchMode() === 'all') {
       while (nextIndex < paths.length) startNextBall();
     } else {
       startNextBall();
@@ -314,13 +317,14 @@ const runAnimation = (paths, layout, bins, launchMode) => {
       return;
     }
 
+    const launchMode = getLaunchMode();
     frameCount += 1;
-    if (
-      isAvalancheMode(launchMode) &&
-      nextIndex < paths.length &&
-      frameCount % avalancheLaunchGapFrames === 0
-    ) {
-      startNextBall();
+    if (nextIndex < paths.length) {
+      if (launchMode === 'all') {
+        while (nextIndex < paths.length) startNextBall();
+      } else if (isAvalancheMode(launchMode) && frameCount % avalancheLaunchGapFrames === 0) {
+        startNextBall();
+      }
     }
 
     let shouldPlayImpact = false;
@@ -339,11 +343,13 @@ const runAnimation = (paths, layout, bins, launchMode) => {
         active.step += 1;
         active.progress = 0;
         shouldPlayImpact = true;
+        const launchLevel = getLaunchLevel(launchMode);
 
         if (
-          launchMode === 'level5' &&
+          launchLevel &&
           !active.spawnedNext &&
-          active.step >= active.triggerStep
+          active.index === nextIndex - 1 &&
+          active.step >= Math.min(launchLevel, active.path.length - 1)
         ) {
           active.spawnedNext = true;
           startNextBall();
@@ -355,7 +361,7 @@ const runAnimation = (paths, layout, bins, launchMode) => {
           landedCount += 1;
           activeBalls.splice(i, 1);
 
-          if (launchMode === 'finish') startNextBall();
+          if (launchMode === 'finish' && active.index === nextIndex - 1) startNextBall();
         }
       }
     }
@@ -410,7 +416,7 @@ const startSimulation = () => {
   currentAnimation = { active: null };
   drawBoard(currentLayout, null);
   drawBinsOnCanvas(currentLayout, Array(levels + 1).fill(0));
-  runAnimation(paths, currentLayout, bins, getLaunchMode());
+  runAnimation(paths, currentLayout, bins);
 };
 
 generateButton.addEventListener('click', startSimulation);
