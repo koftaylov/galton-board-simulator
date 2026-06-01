@@ -76,7 +76,6 @@ const resizeCanvas = () => {
   boardCanvas.height = Math.floor(rect.height * devicePixelRatio);
   ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
-  chart.style.width = rect.width + 'px';
 };
 
 window.addEventListener('resize', resizeCanvas);
