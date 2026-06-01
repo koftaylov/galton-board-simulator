@@ -11,15 +11,7 @@ body {
   padding: 24px;
 }
 
-header h1 {
-  margin: 0 0 8px;
-  font-size: clamp(2rem, 3vw, 3rem);
-}
 
-header p {
-  margin: 0 0 24px;
-  color: #cbd5e1;
-}
 
 .controls {
   display: flex;
@@ -76,18 +68,7 @@ button:hover {
   margin-bottom: 24px;
 }
 
-.board-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
-}
 
-.board-header p {
-  margin: 4px 0 0;
-  color: #cbd5e1;
-}
 
 .board-status {
   padding: 10px 16px;
@@ -123,7 +104,4 @@ button:hover {
   min-width: 160px;
 }
 
-footer {
-  margin-top: 28px;
-  color: #94a3b8;
-}
+

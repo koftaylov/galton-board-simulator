@@ -8,10 +8,7 @@
 </head>
 <body>
   <div class="app-shell">
-    <header>
-      <h1>Standard Distribution Visualization</h1>
-      <p>Simulate a Galton board with obstacles, falling balls, and a histogram of the final distribution.</p>
-    </header>
+
 
     <section class="controls">
       <label>
@@ -30,13 +27,7 @@
     </section>
 
     <section class="board-section">
-      <div class="board-header">
-        <div>
-          <strong>Galton board</strong>
-          <p>Watch balls drop through the obstacle grid.</p>
-        </div>
-        <div id="boardStatus" class="board-status">Ready</div>
-      </div>
+      <div id="boardStatus" class="board-status">Ready</div>
       <canvas id="boardCanvas" class="board-canvas" aria-label="Galton board simulation"></canvas>
     </section>
 
@@ -44,9 +35,7 @@
       <div id="stats" class="stats"></div>
     </section>
 
-    <footer>
-      <p>Built with FastAPI and vanilla JavaScript.</p>
-    </footer>
+
   </div>
 
   <script src="/static/app.js"></script>
