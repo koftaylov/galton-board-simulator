@@ -41,6 +41,7 @@ const labelsContainer = document.getElementById('labels');
 const devicePixelRatio = window.devicePixelRatio || 1;
 let currentAnimation = null;
 let currentLayout = null;
+let currentBins = [];
 let cancelFlag = false;
 let isPaused = false;
 let rafId = null;
