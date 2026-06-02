@@ -48,6 +48,7 @@ let isPaused = false;
 let rafId = null;
 let timeoutIds = [];
 let savedTrails = [];
+let historicalStats = [];
 let isPathSavingEnabled = false;
 const pathCanvas = document.createElement('canvas');
 const pathCtx = pathCanvas.getContext('2d');
@@ -476,8 +477,37 @@ const drawBinsOnCanvas = (layout, bins) => {
   const areaBottom = layout.height - 8;
   const areaHeight = Math.max(48, areaBottom - areaTop);
 
-  const max = Math.max(...bins, 1);
+  // We need to scale based on the absolute maximum value across ALL bins (current and historical)
+  let max = Math.max(...bins, 1);
+  if (saveStatsToggle?.checked) {
+    for (const histBins of historicalStats) {
+      max = Math.max(max, ...histBins);
+    }
+  }
+
   const binCount = bins.length;
+
+  // Draw historical bars FIRST so they appear behind the current run
+  if (saveStatsToggle?.checked) {
+    for (let hIdx = 0; hIdx < historicalStats.length; hIdx++) {
+      const histBins = historicalStats[hIdx];
+      if (!histBins || histBins.length !== binCount) continue; // Skip mismatched levels
+      
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 + (0.05 * (hIdx % 3))})`;
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i < binCount; i++) {
+        const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+        const w = Math.floor(layout.pegSpacing * 0.8); // slightly wider for outline
+        const left = xCenter - w / 2;
+        const value = histBins[i];
+        const h = Math.round((value / max) * (areaHeight - 8));
+        if (value > 0) {
+          ctx.strokeRect(left, areaBottom - h, w, h);
+        }
+      }
+    }
+  }
 
   // draw bars
   for (let i = 0; i < binCount; i++) {
@@ -589,6 +619,12 @@ const runAnimation = (totalBalls, levels, layout) => {
   const completeAnimation = () => {
     boardStatus.textContent = 'Simulation complete';
     currentAnimation = { active: null };
+    
+    // Save current bins to history if toggle is on
+    if (saveStatsToggle?.checked) {
+      historicalStats.push([...currentBins]);
+    }
+
     // Redraw one last time to clear active balls but keep bins
     if (currentLayout) {
       drawBoard(currentLayout, null);
@@ -901,6 +937,7 @@ const clearBoardPegs = () => {
       peg.manual = false;
     }
   }
+  historicalStats = []; // Clear history on board clear
   // Uncheck all toggles to reset the 'brush'
   wildcardTypeInputs.forEach(input => input.checked = false);
   drawBoard(currentLayout, currentAnimation?.active || null);
@@ -920,6 +957,12 @@ turnColorToggle.addEventListener('change', () => {
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 ghostToggle.addEventListener('change', () => {
+  if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+});
+saveStatsToggle.addEventListener('change', () => {
+  if (!saveStatsToggle.checked) {
+    historicalStats = []; // Clear history if toggled off
+  }
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 wildcardTypeInputs.forEach(input => {
