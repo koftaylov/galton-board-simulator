@@ -638,8 +638,8 @@ const runAnimation = (totalBalls, levels, layout) => {
     boardStatus.textContent = 'Simulation complete';
     currentAnimation = { active: null };
     
-    // Save current bins to history if toggle is on
-    if (saveStatsToggle?.checked) {
+    // Save current bins to history if either toggle is on
+    if (saveStatsToggle?.checked || lineStatsToggle?.checked) {
       historicalStats.push([...currentBins]);
     }
 
