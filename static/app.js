@@ -256,6 +256,28 @@ const savePathTrail = (path, color) => {
   repaintSavedPaths();
 };
 
+const applyRandomWildcards = () => {
+  if (!currentLayout) return;
+  const selectedWildcards = getSelectedWildcardTypes();
+  
+  for (const row of currentLayout.rows) {
+    for (const peg of row) {
+      if (!peg.manual) {
+        peg.type = 'normal';
+        if (selectedWildcards.length > 0 && Math.random() < 0.15) {
+          let chosen = selectedWildcards[Math.floor(Math.random() * selectedWildcards.length)];
+          if (chosen === 'wildcard') {
+            const others = selectedWildcards.filter(t => t !== 'wildcard');
+            const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos', 'splitter', 'sticky'];
+            chosen = pool[Math.floor(Math.random() * pool.length)];
+          }
+          peg.type = chosen;
+        }
+      }
+    }
+  }
+};
+
 const buildLayout = (levels) => {
   const width = boardCanvas.width / devicePixelRatio;
   const height = boardCanvas.height / devicePixelRatio;
@@ -273,7 +295,7 @@ const buildLayout = (levels) => {
     for (let col = 0; col < items; col += 1) {
       const x = center + (col - row / 2) * pegSpacing;
       // Start all pegs as 'normal' by default for the manual editor
-      rowPositions.push({ x, y, type: 'normal' });
+      rowPositions.push({ x, y, type: 'normal', manual: false });
     }
     rows.push(rowPositions);
   }
@@ -285,8 +307,6 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   let index = startIndex;
   let color = startColor ? { ...startColor } : { ...START_COLOR };
   const path = [];
-  const selectedWildcards = getSelectedWildcardTypes();
-  const wildcardActive = selectedWildcards.includes('wildcard');
 
   // Start point (no row/col metadata)
   if (startRow === 0) {
@@ -304,8 +324,8 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
     
     let moveRight = Math.random() < rightBias;
 
-    // Apply effect if specific type is selected OR if the generic 'Wildcard' randomizer is selected
-    const isEffectEnabled = peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
+    // Apply effect if it's a special peg
+    const isEffectEnabled = peg.type !== 'normal';
 
     if (isEffectEnabled) {
       // Wildcard: Mirror
@@ -830,6 +850,7 @@ boardCanvas.addEventListener('click', (e) => {
         const currentIdx = types.indexOf(peg.type || 'normal');
         const nextIdx = (currentIdx + 1) % types.length;
         peg.type = types[nextIdx];
+        peg.manual = true; // Protect from random sprinkling
         
         drawBoard(currentLayout, currentAnimation?.active || null);
         return;
@@ -864,8 +885,11 @@ const clearBoardPegs = () => {
   for (const row of currentLayout.rows) {
     for (const peg of row) {
       peg.type = 'normal';
+      peg.manual = false;
     }
   }
+  // Uncheck all toggles to reset the 'brush'
+  wildcardTypeInputs.forEach(input => input.checked = false);
   drawBoard(currentLayout, currentAnimation?.active || null);
 };
 
@@ -887,7 +911,7 @@ ghostToggle.addEventListener('change', () => {
 });
 wildcardTypeInputs.forEach(input => {
   input.addEventListener('change', () => {
-    // Just redraw the existing layout and bins to show/hide colors
+    applyRandomWildcards();
     if (currentLayout) {
       drawBoard(currentLayout, currentAnimation?.active || null);
     }
@@ -902,6 +926,7 @@ levelsInput.addEventListener('change', () => {
   if (!currentAnimation || !currentAnimation.active || currentAnimation.active.length === 0) {
     clearSavedPaths();
     currentLayout = buildLayout(levels);
+    applyRandomWildcards(); // Re-apply toggles to new layout
     currentBins = Array(levels + 1).fill(0);
     drawBoard(currentLayout, null);
   }
@@ -926,6 +951,7 @@ window.addEventListener('DOMContentLoaded', () => {
   
   // Initialize idle state
   currentLayout = buildLayout(levels);
+  applyRandomWildcards();
   currentBins = Array(levels + 1).fill(0);
   drawBoard(currentLayout, null);
 });
