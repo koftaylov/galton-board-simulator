@@ -325,9 +325,22 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   }
 
   for (let row = startRow; row < levels; row += 1) {
-    const peg = currentLayout.rows[row][index];
-    // target just touching the peg so ball appears to contact it
+    let peg = currentLayout.rows[row][index];
+    let decisionIndex = index;
     const touchY = peg.y - (PEG_R + BALL_R - 1);
+
+    if (peg.type === 'teleporter') {
+      path.push({
+        x: peg.x,
+        y: touchY,
+        row,
+        col: decisionIndex,
+        isTeleport: true,
+      });
+
+      decisionIndex = Math.floor(Math.random() * (row + 1));
+      peg = currentLayout.rows[row][decisionIndex];
+    }
     
     let moveRight = Math.random() < rightBias;
 
@@ -359,25 +372,21 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
     // Push the contact point with metadata
     path.push({ 
       x: peg.x, 
-      y: touchY, 
+      y: peg.y - (PEG_R + BALL_R - 1),
       row, 
-      col: index, 
+      col: decisionIndex,
       turn: moveRight ? 'right' : 'left' 
     });
 
-    if (isEffectEnabled && peg.type === 'teleporter') {
-      index = Math.floor(Math.random() * (row + 1));
-      const targetPeg = currentLayout.rows[row][index];
-      // Add a jump point to the path
-      path.push({ x: targetPeg.x, y: targetPeg.y - (PEG_R + BALL_R - 1), isJump: true });
-    }
-
     color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
+    index = decisionIndex;
     if (moveRight) index += 1;
   }
 
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
-  path.push({ x: finalX, y: currentLayout.bottom + 18 });
+  const finalBounceY = currentLayout.bottom - Math.min(26, currentLayout.rowSpacing * 0.45);
+  path.push({ x: finalX, y: finalBounceY });
+  path.push({ x: finalX, y: currentLayout.bottom + 18, arc: 0 });
 
   return { path, bin: index, color };
 };
@@ -484,11 +493,24 @@ const drawBinsOnCanvas = (layout, bins) => {
   const areaBottom = layout.height - 8;
   const areaHeight = Math.max(48, areaBottom - areaTop);
 
-  // We need to scale based on the absolute maximum value across ALL bins (current and historical)
-  let max = Math.max(...bins, 1);
+  const getTotal = (values) => values.reduce((sum, value) => sum + value, 0);
+  const getRate = (values, index) => {
+    const total = getTotal(values);
+    return total > 0 ? values[index] / total : 0;
+  };
+
+  // Scale by bucket percentage so 10, 200, and 10K ball runs use the same visual scale.
+  let maxRate = 0.01;
+  const currentTotal = getTotal(bins);
+  if (currentTotal > 0) {
+    maxRate = Math.max(maxRate, ...bins.map(value => value / currentTotal));
+  }
   if (saveStatsToggle?.checked || lineStatsToggle?.checked) {
     for (const histBins of historicalStats) {
-      max = Math.max(max, ...histBins);
+      const histTotal = getTotal(histBins);
+      if (histTotal > 0) {
+        maxRate = Math.max(maxRate, ...histBins.map(value => value / histTotal));
+      }
     }
   }
 
@@ -509,9 +531,9 @@ const drawBinsOnCanvas = (layout, bins) => {
           const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
           const w = Math.floor(layout.pegSpacing * 0.8); // slightly wider for outline
           const left = xCenter - w / 2;
-          const value = histBins[i];
-          const h = Math.round((value / max) * (areaHeight - 8));
-          if (value > 0) {
+          const rate = getRate(histBins, i);
+          const h = Math.round((rate / maxRate) * (areaHeight - 8));
+          if (rate > 0) {
             ctx.strokeRect(left, areaBottom - h, w, h);
           }
         }
@@ -522,8 +544,8 @@ const drawBinsOnCanvas = (layout, bins) => {
         ctx.beginPath();
         for (let i = 0; i < binCount; i++) {
           const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
-          const value = histBins[i];
-          const h = Math.round((value / max) * (areaHeight - 8));
+          const rate = getRate(histBins, i);
+          const h = Math.round((rate / maxRate) * (areaHeight - 8));
           const y = areaBottom - h;
           if (i === 0) ctx.moveTo(xCenter, y);
           else ctx.lineTo(xCenter, y);
@@ -539,9 +561,9 @@ const drawBinsOnCanvas = (layout, bins) => {
       const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
       const w = Math.floor(layout.pegSpacing * 0.6);
       const left = xCenter - w / 2;
-      const value = bins[i];
-      const h = Math.round((value / max) * (areaHeight - 8));
-      if (value > 0) {
+      const rate = getRate(bins, i);
+      const h = Math.round((rate / maxRate) * (areaHeight - 8));
+      if (rate > 0) {
         ctx.fillStyle = 'rgba(96,165,250,0.95)';
         ctx.fillRect(left, areaBottom - h, w, h);
       }
@@ -609,10 +631,19 @@ const runAnimation = (totalBalls, levels, layout) => {
   let landedCount = 0;
   let frameCount = 0;
   let launchedCount = 0;
+  let noVisIndex = 0;
   const activeBalls = [];
   currentBins = Array(levels + 1).fill(0);
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
+  const scheduleTimeout = (callback, delay) => {
+    const timeoutId = setTimeout(() => {
+      timeoutIds = timeoutIds.filter(id => id !== timeoutId);
+      callback();
+    }, delay);
+    timeoutIds.push(timeoutId);
+    return timeoutId;
+  };
 
   const makeActiveBall = (index, result, startRow = 0) => {
     return {
@@ -658,10 +689,40 @@ const runAnimation = (totalBalls, levels, layout) => {
     
     runsRemaining -= 1;
     if (runsRemaining > 0 && !cancelFlag) {
-      setTimeout(() => startSimulation(true), 150); // slight delay before next run
+      scheduleTimeout(() => startSimulation(true), 150); // slight delay before next run
     } else {
       generateButton.disabled = false;
     }
+  };
+
+  const runNoVisBatch = () => {
+    if (cancelFlag) {
+      boardStatus.textContent = 'Stopped';
+      generateButton.disabled = false;
+      clearAllTimeouts();
+      return;
+    }
+
+    const batchSize = Math.min(5000, totalBalls - noVisIndex);
+    const batchEnd = noVisIndex + batchSize;
+    for (; noVisIndex < batchEnd; noVisIndex += 1) {
+      const result = simulateBallPath(levels, getRightBias());
+      currentBins[result.bin] += 1;
+      if (isPathSavingEnabled) {
+        savePathTrail(result.path, result.color);
+      }
+    }
+
+    launchedCount = noVisIndex;
+    updateLaunchCounter(launchedCount, totalBalls);
+    drawBoard(layout, null);
+
+    if (noVisIndex < totalBalls) {
+      scheduleTimeout(runNoVisBatch, 0);
+      return;
+    }
+
+    completeAnimation();
   };
 
   const startAnimation = () => {
@@ -680,17 +741,10 @@ const runAnimation = (totalBalls, levels, layout) => {
     const launchMode = getLaunchMode();
 
     if (launchMode === 'no-vis') {
-      // Immediate calculation without animation
+      // Batched calculation keeps Stop responsive during large or repeated runs.
       boardStatus.textContent = `Calculating ${totalBalls} balls...`;
-      for (let i = 0; i < totalBalls; i++) {
-        const result = simulateBallPath(levels, getRightBias());
-        currentBins[result.bin] += 1;
-        // Optionally save paths if enabled, but usually no-vis implies no path saving for performance
-        if (isPathSavingEnabled) {
-          savePathTrail(result.path, result.color);
-        }
-      }
-      completeAnimation();
+      currentAnimation = { active: [] };
+      runNoVisBatch();
       return;
     }
 
@@ -746,7 +800,8 @@ const runAnimation = (totalBalls, levels, layout) => {
       
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
-      const arc = Math.sin(Math.PI * t) * active.amplitude;
+      const segmentAmplitude = to.arc ?? active.amplitude;
+      const arc = Math.sin(Math.PI * t) * segmentAmplitude;
       active.x = from.x + (to.x - from.x) * t;
       active.y = from.y + (to.y - from.y) * t - arc;
       const lastTrailPoint = active.trail[active.trail.length - 1];

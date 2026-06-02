@@ -37,8 +37,13 @@
 - [ ] Mutation mode: every N balls, one random peg changes behavior so the board evolves during the run.
 - [ ] work in background when window is not in focus. 
 - [x] replace checkboxes with multioption toggle style.
-- [ ] Add mode "No vis" - launch all balls without visualisation of balls
-- [ ] Add toggle and mode for saving previous stats - after finish each run draw linechart of fact distribution (pale colour), this linechart shall stay on screen until I click Clear. 
+- [x] Add mode "No vis" - launch all balls without visualisation of balls
+- [x] Add toggle and mode for saving previous stats - after finish each run draw linechart of fact distribution (pale colour), this linechart shall stay on screen until I click Clear. 
+- [ ] Add second line of data labels with average across data from stats.
+- [x] Fix - does not stop if several run with No vis mode
+- [x] Fix - balls do not bounce properly on last level, after touching it moves directly to basket.
+- [x] Fix - look like Chaos doesn't work at all on last level, if right bias = 100 and most right peg on last level is teleport and all the rest pegs on last level is chaos balls always select right.
+- [x] Fix - looks like histogram y-axis works by values, not %. once chane amount of balls scale of histogrm changes. it should use % so scalse the same for 10 and 10K balls.
 ## Favorite Combo
 
 - [ ] Combine wildcard pegs, path sonification, and heatmap trails into a probability instrument mode.
