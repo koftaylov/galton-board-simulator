@@ -266,22 +266,14 @@ const buildLayout = (levels) => {
   const center = width / 2;
   const rows = [];
   
-  // All possible types for random assignment
-  const wildcardPool = ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos', 'splitter', 'sticky'];
-
   for (let row = 0; row < levels; row += 1) {
     const items = row + 1;
     const y = top + row * rowSpacing;
     const rowPositions = [];
     for (let col = 0; col < items; col += 1) {
       const x = center + (col - row / 2) * pegSpacing;
-      let type = 'normal';
-      
-      // Assign wildcard type with ~15% probability
-      if (Math.random() < 0.15) {
-        type = wildcardPool[Math.floor(Math.random() * wildcardPool.length)];
-      }
-      rowPositions.push({ x, y, type });
+      // Start all pegs as 'normal' by default for the manual editor
+      rowPositions.push({ x, y, type: 'normal' });
     }
     rows.push(rowPositions);
   }
@@ -791,10 +783,25 @@ const startSimulation = () => {
 
   boardStatus.textContent = 'Simulating...';
 
-  currentLayout = null;
-  resizeCanvas();
+  // Preserve layout to keep manual peg edits
+  if (!currentLayout) {
+    resizeCanvas();
+    currentLayout = buildLayout(levels);
+  } else {
+    // If levels changed but layout wasn't nullified (safety check)
+    const currentLevels = currentLayout.rows.length;
+    if (currentLevels !== levels) {
+      resizeCanvas();
+      currentLayout = buildLayout(levels);
+    } else {
+      // Just clear paths from canvas but keep pegs
+      const width = pathCanvas.width / devicePixelRatio;
+      const height = pathCanvas.height / devicePixelRatio;
+      pathCtx.clearRect(0, 0, width, height);
+    }
+  }
+
   clearSavedPaths();
-  currentLayout = buildLayout(levels);
   currentBins = Array(levels + 1).fill(0);
 
   renderStats(balls, levels, currentBins);
@@ -859,6 +866,19 @@ boardCanvas.addEventListener('mousemove', (e) => {
   }
   boardCanvas.style.cursor = overPeg ? 'pointer' : 'default';
 });
+
+const clearBoardPegs = () => {
+  if (!currentLayout) return;
+  for (const row of currentLayout.rows) {
+    for (const peg of row) {
+      peg.type = 'normal';
+    }
+  }
+  drawBoard(currentLayout, currentAnimation?.active || null);
+};
+
+const clearPegsButton = document.getElementById('clearPegs');
+if (clearPegsButton) clearPegsButton.addEventListener('click', clearBoardPegs);
 
 generateButton.addEventListener('click', startSimulation);
 if (pauseButton) pauseButton.addEventListener('click', togglePause);

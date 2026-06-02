@@ -248,6 +248,14 @@ button:hover {
   background: #dc2626;
 }
 
+.clear {
+  background: #475569;
+}
+
+.clear:hover {
+  background: #334155;
+}
+
 .toggle-group {
   display: flex;
   gap: 8px;
