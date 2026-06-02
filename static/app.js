@@ -712,15 +712,13 @@ const runAnimation = (totalBalls, levels, layout) => {
           if (isEffectEnabled) {
             if (peg.type === 'sticky') {
               active.stickySteps = 2; // slow for next 2 rows
-            } else if (peg.type === 'splitter' && !active.hasSplit) {
-              active.hasSplit = true;
+            } else if (peg.type === 'splitter') {
               const sibling = makeActiveBall(
-                nextIndex, 
+                -1, // -1 ensures siblings don't hijack the main launch sequence index
                 simulateBallPath(levels, getRightBias(), rowIdx + 1, colIdx, active.color),
                 rowIdx + 1
               );
               if (sibling) {
-                sibling.hasSplit = true;
                 activeBalls.push(sibling);
                 launchedCount += 1;
                 updateLaunchCounter(launchedCount, totalBalls);
