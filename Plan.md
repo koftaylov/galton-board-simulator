@@ -38,6 +38,7 @@
 - [ ] work in background when window is not in focus. 
 - [x] replace checkboxes with multioption toggle style.
 - [ ] Add mode "No vis" - launch all balls without visualisation of balls
+- [ ] Add toggle and mode for saving previous stats - after finish each run draw linechart of fact distribution (pale colour), this linechart shall stay on screen until I click Clear. 
 ## Favorite Combo
 
 - [ ] Combine wildcard pegs, path sonification, and heatmap trails into a probability instrument mode.
