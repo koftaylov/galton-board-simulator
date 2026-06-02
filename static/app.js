@@ -412,19 +412,11 @@ const drawBoard = (layout, activeBall = null) => {
   for (const row of layout.rows) {
     for (const peg of row) {
       ctx.beginPath();
-      // Logic: 
-      // 1. Is it a special peg?
-      // 2. Is its type globally enabled via sidebar?
       const isSpecial = peg.type && peg.type !== 'normal';
-      const isGloballyEnabled = isSpecial && (selectedWildcards.includes(peg.type) || wildcardActive);
       
-      if (isGloballyEnabled) {
+      if (isSpecial) {
         ctx.fillStyle = WILDCARD_COLORS[peg.type] || '#94a3b8';
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      } else if (isSpecial) {
-        // Show a faint version of the color to indicate it's set but disabled
-        ctx.fillStyle = colorToRgba(hexToRgb(WILDCARD_COLORS[peg.type] || '#94a3b8'), 0.3);
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
       } else {
         ctx.fillStyle = '#94a3b8';
         ctx.strokeStyle = 'rgba(255,255,255,0.08)';
