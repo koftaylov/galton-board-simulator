@@ -12,6 +12,7 @@ const turnColorToggle = document.getElementById('turnColorToggle');
 const ghostToggle = document.getElementById('ghostToggle');
 const saveStatsToggle = document.getElementById('saveStatsToggle');
 const lineStatsToggle = document.getElementById('lineStatsToggle');
+const barToggle = document.getElementById('barToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 
 const factorials = [1];
@@ -528,15 +529,17 @@ const drawBinsOnCanvas = (layout, bins) => {
   }
 
   // draw bars
-  for (let i = 0; i < binCount; i++) {
-    const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
-    const w = Math.floor(layout.pegSpacing * 0.6);
-    const left = xCenter - w / 2;
-    const value = bins[i];
-    const h = Math.round((value / max) * (areaHeight - 8));
-    if (value > 0) {
-      ctx.fillStyle = 'rgba(96,165,250,0.95)';
-      ctx.fillRect(left, areaBottom - h, w, h);
+  if (barToggle?.checked) {
+    for (let i = 0; i < binCount; i++) {
+      const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+      const w = Math.floor(layout.pegSpacing * 0.6);
+      const left = xCenter - w / 2;
+      const value = bins[i];
+      const h = Math.round((value / max) * (areaHeight - 8));
+      if (value > 0) {
+        ctx.fillStyle = 'rgba(96,165,250,0.95)';
+        ctx.fillRect(left, areaBottom - h, w, h);
+      }
     }
   }
 
