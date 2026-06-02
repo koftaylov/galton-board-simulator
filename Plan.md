@@ -36,7 +36,8 @@
 - [ ] Slow-motion inspector: pause and scrub the simulation frame by frame.
 - [ ] Mutation mode: every N balls, one random peg changes behavior so the board evolves during the run.
 - [ ] work in background when window is not in focus. 
-- [ ] replace checkboxes with multioption toggle style.
+- [x] replace checkboxes with multioption toggle style.
+- [ ] Add mode "No vis" - launch all balls without visualisation of balls
 ## Favorite Combo
 
 - [ ] Combine wildcard pegs, path sonification, and heatmap trails into a probability instrument mode.
