@@ -1,5 +1,6 @@
 const ballsInput = document.getElementById('balls');
 const levelsInput = document.getElementById('levels');
+const runsInput = document.getElementById('runs');
 const speedInput = document.getElementById('speed');
 const biasInput = document.getElementById('bias');
 const biasValueInput = document.getElementById('biasValue');
@@ -52,6 +53,7 @@ let timeoutIds = [];
 let savedTrails = [];
 let historicalStats = [];
 let isPathSavingEnabled = false;
+let runsRemaining = 0;
 const pathCanvas = document.createElement('canvas');
 const pathCtx = pathCanvas.getContext('2d');
 
@@ -650,7 +652,13 @@ const runAnimation = (totalBalls, levels, layout) => {
     if (currentLayout) {
       drawBoard(currentLayout, null);
     }
-    generateButton.disabled = false;
+    
+    runsRemaining -= 1;
+    if (runsRemaining > 0 && !cancelFlag) {
+      setTimeout(() => startSimulation(true), 150); // slight delay before next run
+    } else {
+      generateButton.disabled = false;
+    }
   };
 
   const startAnimation = () => {
@@ -848,7 +856,9 @@ const togglePause = () => {
   if (pauseButton) pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
 };
 
-const startSimulation = () => {
+const startSimulation = (eOrAuto) => {
+  const isAutoRestart = eOrAuto === true;
+
   // Stop existing simulation if any
   stopSimulation();
 
@@ -860,6 +870,11 @@ const startSimulation = () => {
   timeoutIds = [];
   const balls = clamp(parseInt(ballsInput.value, 10) || 200, 1, 1000000);
   const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
+  
+  if (!isAutoRestart) {
+    runsRemaining = clamp(parseInt(runsInput?.value, 10) || 1, 1, 10000);
+  }
+
   updateLaunchCounter(0, balls);
   updateCanvasHeight(levels);
 
