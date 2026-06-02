@@ -11,6 +11,7 @@ const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
 const ghostToggle = document.getElementById('ghostToggle');
 const saveStatsToggle = document.getElementById('saveStatsToggle');
+const lineStatsToggle = document.getElementById('lineStatsToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 
 const factorials = [1];
@@ -479,7 +480,7 @@ const drawBinsOnCanvas = (layout, bins) => {
 
   // We need to scale based on the absolute maximum value across ALL bins (current and historical)
   let max = Math.max(...bins, 1);
-  if (saveStatsToggle?.checked) {
+  if (saveStatsToggle?.checked || lineStatsToggle?.checked) {
     for (const histBins of historicalStats) {
       max = Math.max(max, ...histBins);
     }
@@ -487,24 +488,41 @@ const drawBinsOnCanvas = (layout, bins) => {
 
   const binCount = bins.length;
 
-  // Draw historical bars FIRST so they appear behind the current run
-  if (saveStatsToggle?.checked) {
+  // Draw historical stats FIRST so they appear behind the current run
+  if (saveStatsToggle?.checked || lineStatsToggle?.checked) {
     for (let hIdx = 0; hIdx < historicalStats.length; hIdx++) {
       const histBins = historicalStats[hIdx];
       if (!histBins || histBins.length !== binCount) continue; // Skip mismatched levels
       
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 + (0.05 * (hIdx % 3))})`;
-      ctx.lineWidth = 1;
+      const strokeColor = `rgba(255, 255, 255, ${0.15 + (0.1 * (hIdx % 3))})`;
+      ctx.strokeStyle = strokeColor;
 
-      for (let i = 0; i < binCount; i++) {
-        const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
-        const w = Math.floor(layout.pegSpacing * 0.8); // slightly wider for outline
-        const left = xCenter - w / 2;
-        const value = histBins[i];
-        const h = Math.round((value / max) * (areaHeight - 8));
-        if (value > 0) {
-          ctx.strokeRect(left, areaBottom - h, w, h);
+      if (saveStatsToggle?.checked) {
+        ctx.lineWidth = 1;
+        for (let i = 0; i < binCount; i++) {
+          const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+          const w = Math.floor(layout.pegSpacing * 0.8); // slightly wider for outline
+          const left = xCenter - w / 2;
+          const value = histBins[i];
+          const h = Math.round((value / max) * (areaHeight - 8));
+          if (value > 0) {
+            ctx.strokeRect(left, areaBottom - h, w, h);
+          }
         }
+      }
+
+      if (lineStatsToggle?.checked) {
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < binCount; i++) {
+          const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
+          const value = histBins[i];
+          const h = Math.round((value / max) * (areaHeight - 8));
+          const y = areaBottom - h;
+          if (i === 0) ctx.moveTo(xCenter, y);
+          else ctx.lineTo(xCenter, y);
+        }
+        ctx.stroke();
       }
     }
   }
@@ -960,8 +978,14 @@ ghostToggle.addEventListener('change', () => {
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 saveStatsToggle.addEventListener('change', () => {
-  if (!saveStatsToggle.checked) {
-    historicalStats = []; // Clear history if toggled off
+  if (!saveStatsToggle.checked && !lineStatsToggle.checked) {
+    historicalStats = []; // Clear history if both toggled off
+  }
+  if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+});
+lineStatsToggle.addEventListener('change', () => {
+  if (!saveStatsToggle.checked && !lineStatsToggle.checked) {
+    historicalStats = []; // Clear history if both toggled off
   }
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
