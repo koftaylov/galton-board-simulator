@@ -293,11 +293,10 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   let index = startIndex;
   let color = startColor ? { ...startColor } : { ...START_COLOR };
   const path = [];
-  const turns = [];
-  const indexAtStep = []; // Track horizontal index at each row
   const selectedWildcards = getSelectedWildcardTypes();
   const wildcardActive = selectedWildcards.includes('wildcard');
 
+  // Start point (no row/col metadata)
   if (startRow === 0) {
     path.push({ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) });
   } else {
@@ -307,11 +306,9 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   }
 
   for (let row = startRow; row < levels; row += 1) {
-    indexAtStep.push(index);
     const peg = currentLayout.rows[row][index];
     // target just touching the peg so ball appears to contact it
     const touchY = peg.y - (PEG_R + BALL_R - 1);
-    path.push({ x: peg.x, y: touchY });
     
     let moveRight = Math.random() < rightBias;
 
@@ -338,15 +335,24 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       else if (peg.type === 'chaos') {
         moveRight = Math.random() < 0.5;
       }
-      // Wildcard: Teleporter (jump to another valid peg position at same level)
-      else if (peg.type === 'teleporter') {
-        index = Math.floor(Math.random() * (row + 1));
-        const targetPeg = currentLayout.rows[row][index];
-        path.push({ x: targetPeg.x, y: targetPeg.y - (PEG_R + BALL_R - 1), jump: true });
-      }
     }
 
-    turns.push(moveRight ? 'right' : 'left');
+    // Push the contact point with metadata
+    path.push({ 
+      x: peg.x, 
+      y: touchY, 
+      row, 
+      col: index, 
+      turn: moveRight ? 'right' : 'left' 
+    });
+
+    if (isEffectEnabled && peg.type === 'teleporter') {
+      index = Math.floor(Math.random() * (row + 1));
+      const targetPeg = currentLayout.rows[row][index];
+      // Add a jump point to the path
+      path.push({ x: targetPeg.x, y: targetPeg.y - (PEG_R + BALL_R - 1), isJump: true });
+    }
+
     color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
     if (moveRight) index += 1;
   }
@@ -354,7 +360,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   path.push({ x: finalX, y: currentLayout.bottom + 18 });
 
-  return { path, bin: index, color, turns, indexAtStep };
+  return { path, bin: index, color };
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -540,8 +546,6 @@ const runAnimation = (totalBalls, levels, layout) => {
       path: result.path,
       bin: result.bin,
       color: result.color,
-      turns: result.turns,
-      indexAtStep: result.indexAtStep,
       step: 0,
       progress: 0,
       x: result.path[0].x,
@@ -567,7 +571,10 @@ const runAnimation = (totalBalls, levels, layout) => {
   const completeAnimation = () => {
     boardStatus.textContent = 'Simulation complete';
     currentAnimation = { active: null };
-    drawBoard(layout, null);
+    // Redraw one last time to clear active balls but keep bins
+    if (currentLayout) {
+      drawBoard(currentLayout, null);
+    }
     generateButton.disabled = false;
   };
 
@@ -653,16 +660,17 @@ const runAnimation = (totalBalls, levels, layout) => {
         // Decrement sticky steps
         if (active.stickySteps > 0) active.stickySteps -= 1;
 
-        const turnDirection = active.turns[active.step - 1];
-        if (turnDirection) {
-          playTurnSoundIfEnabled(turnDirection, active.step - 1);
+        const currentPoint = active.path[active.step];
+
+        if (currentPoint && currentPoint.turn) {
+          playTurnSoundIfEnabled(currentPoint.turn, currentPoint.row);
         }
 
         // Check for Splitter and Sticky wildcards upon peg contact
-        if (active.step < active.path.length - 1) {
-          // Calculate absolute row and col on the board
-          const rowIdx = active.startRow + active.step - 1;
-          const colIdx = active.indexAtStep[active.step - 1];
+        // Metadata is present on contact points (non-jumps)
+        if (currentPoint && currentPoint.row !== undefined && active.step < active.path.length - 1) {
+          const rowIdx = currentPoint.row;
+          const colIdx = currentPoint.col;
           const peg = currentLayout.rows[rowIdx][colIdx];
           
           const selectedWildcards = getSelectedWildcardTypes();
@@ -673,18 +681,15 @@ const runAnimation = (totalBalls, levels, layout) => {
             if (peg.type === 'sticky') {
               active.stickySteps = 2; // slow for next 2 rows
             } else if (peg.type === 'splitter' && !active.hasSplit) {
-              // Mark current ball so it doesn't split infinitely
               active.hasSplit = true;
-              // Spawn sibling ball starting from NEXT row
               const sibling = makeActiveBall(
                 nextIndex, 
                 simulateBallPath(levels, getRightBias(), rowIdx + 1, colIdx, active.color),
                 rowIdx + 1
               );
               if (sibling) {
-                sibling.hasSplit = true; // Sibling also shouldn't split immediately
+                sibling.hasSplit = true;
                 activeBalls.push(sibling);
-                // Extra ball launched via split
                 launchedCount += 1;
                 updateLaunchCounter(launchedCount, totalBalls);
               }
