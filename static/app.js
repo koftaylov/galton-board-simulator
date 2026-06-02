@@ -10,6 +10,7 @@ const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundM
 const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
 const ghostToggle = document.getElementById('ghostToggle');
+const saveStatsToggle = document.getElementById('saveStatsToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 
 const factorials = [1];
