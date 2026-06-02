@@ -570,7 +570,6 @@ const runAnimation = (totalBalls, levels, layout) => {
       y: result.path[0].y,
       amplitude: 18,
       spawnedNext: false,
-      hasSplit: false,
       stickySteps: 0,
       trail: [{ x: result.path[0].x, y: result.path[0].y }],
     };
@@ -708,9 +707,7 @@ const runAnimation = (totalBalls, levels, layout) => {
           const colIdx = currentPoint.col;
           const peg = currentLayout.rows[rowIdx][colIdx];
           
-          const selectedWildcards = getSelectedWildcardTypes();
-          const wildcardActive = selectedWildcards.includes('wildcard');
-          const isEffectEnabled = peg && peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
+          const isEffectEnabled = peg && peg.type !== 'normal';
 
           if (isEffectEnabled) {
             if (peg.type === 'sticky') {
