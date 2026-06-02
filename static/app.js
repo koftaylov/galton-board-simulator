@@ -609,7 +609,24 @@ const runAnimation = (totalBalls, levels, layout) => {
       return;
     }
 
-    if (getLaunchMode() === 'all') {
+    const launchMode = getLaunchMode();
+
+    if (launchMode === 'no-vis') {
+      // Immediate calculation without animation
+      boardStatus.textContent = `Calculating ${totalBalls} balls...`;
+      for (let i = 0; i < totalBalls; i++) {
+        const result = simulateBallPath(levels, getRightBias());
+        currentBins[result.bin] += 1;
+        // Optionally save paths if enabled, but usually no-vis implies no path saving for performance
+        if (isPathSavingEnabled) {
+          savePathTrail(result.path, result.color);
+        }
+      }
+      completeAnimation();
+      return;
+    }
+
+    if (launchMode === 'all') {
       while (nextIndex < totalBalls) startNextBall();
     } else {
       startNextBall();
