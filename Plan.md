@@ -17,10 +17,9 @@
   - [x] Implement Wildcard: randomly chooses one enabled wildcard behavior.
   - [ ] Tune wildcard density and placement rules.
   - [ ] Add visual/audio feedback when a wildcard activates.
-  - [ ] BUG - when teleport activated it frozes sometimes.
 - [x] Add button Pause to pause execution. Button Stop shell stop execution and remove all balls and pathes.
 - [x] Do not save path if it is not turned on from very beginning.
-- [ ] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
+- [x] Peg types and board editor: click pegs to cycle between normal, magnet, mirror, splitter, blocker, or other behaviors.
 - [x] Ghost distribution overlay: draw the expected binomial or normal curve behind the histogram.
 - [ ] Deviation mode: color bars based on whether each bucket is above or below its expected count.
 - [ ] Ball families: assign each ball a family or color based on its first turn and track how early choices shape outcomes.

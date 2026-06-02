@@ -791,6 +791,34 @@ const startSimulation = () => {
   runAnimation(balls, levels, currentLayout);
 };
 
+boardCanvas.addEventListener('click', (e) => {
+  if (!currentLayout) return;
+  
+  const rect = boardCanvas.getBoundingClientRect();
+  const mouseX = (e.clientX - rect.left) * (boardCanvas.width / rect.width) / devicePixelRatio;
+  const mouseY = (e.clientY - rect.top) * (boardCanvas.height / rect.height) / devicePixelRatio;
+
+  const types = ['normal', 'mirror', 'magnet', 'repeller', 'teleporter', 'splitter', 'sticky', 'chaos'];
+  
+  for (const row of currentLayout.rows) {
+    for (const peg of row) {
+      const dx = mouseX - peg.x;
+      const dy = mouseY - peg.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist <= PEG_R + 8) { // generous hit area for easier clicking
+        const currentIdx = types.indexOf(peg.type || 'normal');
+        const nextIdx = (currentIdx + 1) % types.length;
+        peg.type = types[nextIdx];
+        
+        // Redraw board immediately to show new color
+        drawBoard(currentLayout, currentAnimation?.active || null);
+        return;
+      }
+    }
+  }
+});
+
 generateButton.addEventListener('click', startSimulation);
 if (pauseButton) pauseButton.addEventListener('click', togglePause);
 stopButton.addEventListener('click', stopSimulation);
