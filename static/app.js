@@ -406,8 +406,9 @@ const getAvalancheLaunchGapFrames = () => {
 };
 const updateLaunchCounter = (launched, total) => {
   if (!launchCounter) return;
-  const currentRun = totalRuns > 1 ? ` / Run ${totalRuns - runsRemaining + (launched < total ? 1 : 0)} of ${totalRuns}` : '';
-  launchCounter.textContent = `Launched ${launched} / ${total}${currentRun}`;
+  const currentRunIndex = totalRuns - runsRemaining + 1;
+  const runText = totalRuns > 1 ? `Run ${currentRunIndex} / ${totalRuns}, ` : '';
+  launchCounter.textContent = `${runText}Launched ${launched} / ${total}`;
 };
 const syncBiasInputs = (source) => {
   const value = clamp(parseInt(source.value, 10) || 0, 0, 100);
