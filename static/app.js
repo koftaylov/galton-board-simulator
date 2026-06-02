@@ -420,12 +420,26 @@ const drawBoard = (layout, activeBall = null) => {
   for (const row of layout.rows) {
     for (const peg of row) {
       ctx.beginPath();
-      // Only show color if the specific wildcard type is enabled OR if the random 'Wildcard' toggle is on
-      const isEnabled = peg.type && peg.type !== 'normal' && (selectedWildcards.includes(peg.type) || wildcardActive);
-      ctx.fillStyle = (isEnabled && WILDCARD_COLORS[peg.type]) ? WILDCARD_COLORS[peg.type] : '#94a3b8';
+      // Logic: 
+      // 1. Is it a special peg?
+      // 2. Is its type globally enabled via sidebar?
+      const isSpecial = peg.type && peg.type !== 'normal';
+      const isGloballyEnabled = isSpecial && (selectedWildcards.includes(peg.type) || wildcardActive);
+      
+      if (isGloballyEnabled) {
+        ctx.fillStyle = WILDCARD_COLORS[peg.type] || '#94a3b8';
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      } else if (isSpecial) {
+        // Show a faint version of the color to indicate it's set but disabled
+        ctx.fillStyle = colorToRgba(hexToRgb(WILDCARD_COLORS[peg.type] || '#94a3b8'), 0.3);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      } else {
+        ctx.fillStyle = '#94a3b8';
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      }
+
       ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = isEnabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)';
       ctx.stroke();
     }
   }
@@ -791,6 +805,13 @@ const startSimulation = () => {
   runAnimation(balls, levels, currentLayout);
 };
 
+const hexToRgb = (hex) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+};
+
 boardCanvas.addEventListener('click', (e) => {
   if (!currentLayout) return;
   
@@ -806,17 +827,37 @@ boardCanvas.addEventListener('click', (e) => {
       const dy = mouseY - peg.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
-      if (dist <= PEG_R + 8) { // generous hit area for easier clicking
+      if (dist <= PEG_R + 10) { // generous hit area
         const currentIdx = types.indexOf(peg.type || 'normal');
         const nextIdx = (currentIdx + 1) % types.length;
         peg.type = types[nextIdx];
         
-        // Redraw board immediately to show new color
         drawBoard(currentLayout, currentAnimation?.active || null);
         return;
       }
     }
   }
+});
+
+boardCanvas.addEventListener('mousemove', (e) => {
+  if (!currentLayout) return;
+  const rect = boardCanvas.getBoundingClientRect();
+  const mouseX = (e.clientX - rect.left) * (boardCanvas.width / rect.width) / devicePixelRatio;
+  const mouseY = (e.clientY - rect.top) * (boardCanvas.height / rect.height) / devicePixelRatio;
+
+  let overPeg = false;
+  for (const row of currentLayout.rows) {
+    for (const peg of row) {
+      const dx = mouseX - peg.x;
+      const dy = mouseY - peg.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= PEG_R + 10) {
+        overPeg = true;
+        break;
+      }
+    }
+    if (overPeg) break;
+  }
+  boardCanvas.style.cursor = overPeg ? 'pointer' : 'default';
 });
 
 generateButton.addEventListener('click', startSimulation);
