@@ -36,7 +36,8 @@
 - [ ] Bucket personalities: give buckets distinct colors, sounds, or labels, with rare outer buckets triggering special effects.
 - [ ] Slow-motion inspector: pause and scrub the simulation frame by frame.
 - [ ] Mutation mode: every N balls, one random peg changes behavior so the board evolves during the run.
-
+- [ ] work in background when window is not in focus. 
+- [ ] replace checkboxes with multioption toggle style.
 ## Favorite Combo
 
 - [ ] Combine wildcard pegs, path sonification, and heatmap trails into a probability instrument mode.
