@@ -54,6 +54,7 @@ let savedTrails = [];
 let historicalStats = [];
 let isPathSavingEnabled = false;
 let runsRemaining = 0;
+let totalRuns = 1;
 const pathCanvas = document.createElement('canvas');
 const pathCtx = pathCanvas.getContext('2d');
 
@@ -405,7 +406,8 @@ const getAvalancheLaunchGapFrames = () => {
 };
 const updateLaunchCounter = (launched, total) => {
   if (!launchCounter) return;
-  launchCounter.textContent = `Launched ${launched} / ${total}`;
+  const currentRun = totalRuns > 1 ? ` / Run ${totalRuns - runsRemaining + (launched < total ? 1 : 0)} of ${totalRuns}` : '';
+  launchCounter.textContent = `Launched ${launched} / ${total}${currentRun}`;
 };
 const syncBiasInputs = (source) => {
   const value = clamp(parseInt(source.value, 10) || 0, 0, 100);
@@ -872,7 +874,8 @@ const startSimulation = (eOrAuto) => {
   const levels = clamp(parseInt(levelsInput.value, 10) || 12, 1, 20);
   
   if (!isAutoRestart) {
-    runsRemaining = clamp(parseInt(runsInput?.value, 10) || 1, 1, 10000);
+    totalRuns = clamp(parseInt(runsInput?.value, 10) || 1, 1, 10000);
+    runsRemaining = totalRuns;
   }
 
   updateLaunchCounter(0, balls);
