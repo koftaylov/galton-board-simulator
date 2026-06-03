@@ -15,7 +15,7 @@ const turnColorToggle = document.getElementById('turnColorToggle');
 const ghostToggle = document.getElementById('ghostToggle');
 const saveStatsToggle = document.getElementById('saveStatsToggle');
 const lineStatsToggle = document.getElementById('lineStatsToggle');
-const barToggle = document.getElementById('barToggle');
+const histogramModeInputs = Array.from(document.querySelectorAll('input[name="histogramMode"]'));
 const backgroundToggle = document.getElementById('backgroundToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 const labelStatModeInputs = Array.from(document.querySelectorAll('input[name="labelStatMode"]'));
@@ -86,6 +86,7 @@ const WILDCARD_COLORS = {
 };
 
 const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
+const getHistogramMode = () => histogramModeInputs.find(input => input.checked)?.value || 'bars';
 const getSelectedCurrentLabelModes = () => currentLabelModeInputs
   .filter(input => input.checked && input.value !== 'off')
   .map(input => input.value);
@@ -218,6 +219,54 @@ const colorToRgb = (color) => `rgb(${color.r}, ${color.g}, ${color.b})`;
 const colorToRgba = (color, alpha) => `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
 const getBallColor = (ball) => turnColorToggle?.checked ? ball.color : START_COLOR;
 const getTrailColor = (ball) => turnColorToggle?.checked ? ball.color : { r: 74, g: 222, b: 128 };
+const getHistogramArea = (layout) => {
+  const top = layout.bottom + 8;
+  const bottom = layout.height - 8;
+  return {
+    top,
+    bottom,
+    height: Math.max(48, bottom - top),
+  };
+};
+const getBucketMetrics = (layout, bins, bin) => {
+  const area = getHistogramArea(layout);
+  const radius = Math.max(6, Math.min(BALL_R * 1.02, layout.pegSpacing * 0.2));
+  const bucketWidth = Math.floor(layout.pegSpacing * 0.76);
+  const xCenter = layout.center + (bin - (bins.length - 1) / 2) * layout.pegSpacing;
+  const left = xCenter - bucketWidth / 2;
+  const innerTop = area.top + 8;
+  const innerBottom = area.bottom - radius;
+  const usableHeight = Math.max(radius * 2, innerBottom - innerTop);
+  const rowGap = radius * 1.28;
+  const colGap = radius * 1.46;
+  const columns = Math.max(1, Math.floor((bucketWidth - radius) / colGap));
+  const maxCount = Math.max(1, ...bins);
+  const binCount = bins[bin] || 0;
+  const rowCount = Math.max(0, Math.ceil(binCount / columns));
+  const maxRowsAtFullScale = Math.max(1, Math.floor(usableHeight / rowGap) + 1);
+  const requiredMaxRows = Math.max(maxRowsAtFullScale, Math.ceil(maxCount / columns));
+  const effectiveRowGap = requiredMaxRows > maxRowsAtFullScale
+    ? usableHeight / Math.max(1, requiredMaxRows - 1)
+    : rowGap;
+  const topCenterY = binCount > 0
+    ? innerBottom - Math.min(usableHeight, (rowCount - 1) * effectiveRowGap)
+    : area.bottom - BALL_R;
+
+  return {
+    ...area,
+    xCenter,
+    left,
+    width: bucketWidth,
+    radius,
+    innerTop,
+    innerBottom,
+    usableHeight,
+    colGap,
+    columns,
+    effectiveRowGap,
+    topCenterY,
+  };
+};
 
 const updateCanvasHeight = (levels) => {
   const height = Math.ceil(BASE_TOP + HISTOGRAM_RESERVED_HEIGHT + BASE_ROW_SPACING * (levels + 1));
@@ -329,7 +378,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
 
   // Start point (no row/col metadata)
   if (startRow === 0) {
-    path.push({ x: currentLayout.center, y: currentLayout.top - (BALL_R + 6) });
+    path.push({ x: currentLayout.center, y: currentLayout.top - Math.max(currentLayout.rowSpacing * 0.7, BALL_R * 4) });
   } else {
     // Starting mid-board (e.g. after a split)
     const prevPeg = currentLayout.rows[startRow - 1][startIndex];
@@ -580,8 +629,47 @@ const drawBinsOnCanvas = (layout, bins) => {
     }
   }
 
+  const histogramMode = getHistogramMode();
+
+  if (histogramMode === 'buckets') {
+    for (let i = 0; i < binCount; i++) {
+      const bucket = getBucketMetrics(layout, bins, i);
+      ctx.strokeStyle = 'rgba(125, 211, 252, 0.72)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bucket.left, bucket.innerTop);
+      ctx.lineTo(bucket.left, bucket.bottom);
+      ctx.lineTo(bucket.left + bucket.width, bucket.bottom);
+      ctx.lineTo(bucket.left + bucket.width, bucket.innerTop);
+      ctx.stroke();
+
+      const count = bins[i];
+      if (count > 0) {
+        ctx.fillStyle = 'rgba(96, 165, 250, 0.84)';
+        ctx.strokeStyle = 'rgba(191, 219, 254, 0.55)';
+        const visibleCount = Math.min(count, 260);
+        for (let b = 0; b < visibleCount; b++) {
+          const actualIndex = visibleCount === count
+            ? b
+            : Math.floor((b / Math.max(1, visibleCount - 1)) * (count - 1));
+          const rowStart = Math.floor(actualIndex / bucket.columns) * bucket.columns;
+          const rowEnd = Math.min(count, rowStart + bucket.columns);
+          const rowSize = rowEnd - rowStart;
+          const col = actualIndex - rowStart;
+          const row = Math.floor(actualIndex / bucket.columns);
+          const x = bucket.xCenter + (col - (rowSize - 1) / 2) * bucket.colGap;
+          const y = bucket.innerBottom - Math.min(bucket.usableHeight, row * bucket.effectiveRowGap);
+          ctx.beginPath();
+          ctx.arc(x, y, bucket.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
   // draw bars
-  if (barToggle?.checked) {
+  if (histogramMode === 'bars') {
     for (let i = 0; i < binCount; i++) {
       const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
       const w = Math.floor(layout.pegSpacing * 0.6);
@@ -722,7 +810,12 @@ const runAnimation = (totalBalls, levels, layout) => {
   };
   const getLandingThresholdY = (bin) => {
     const areaBottom = layout.height - 8;
-    if (!barToggle?.checked || !currentBins[bin]) return areaBottom - BALL_R;
+    const histogramMode = getHistogramMode();
+    if (histogramMode === 'off') return layout.bottom + 8;
+    if (histogramMode === 'buckets') {
+      return getBucketMetrics(layout, currentBins, bin).topCenterY;
+    }
+    if (!currentBins[bin]) return areaBottom - BALL_R;
 
     const areaTop = layout.bottom + 8;
     const areaHeight = Math.max(48, areaBottom - areaTop);
@@ -947,7 +1040,7 @@ const runAnimation = (totalBalls, levels, layout) => {
           
           const isEffectEnabled = peg && peg.type !== 'normal';
 
-          if (isEffectEnabled) {
+          if (isEffectEnabled && rowIdx < levels - 1) {
             if (peg.type === 'sticky') {
               active.stickySteps = 2; // slow for next 2 rows
             } else if (peg.type === 'splitter') {
@@ -1281,6 +1374,11 @@ wildcardTypeInputs.forEach(input => {
     if (currentLayout) {
       drawBoard(currentLayout, currentAnimation?.active || null);
     }
+  });
+});
+histogramModeInputs.forEach(input => {
+  input.addEventListener('change', () => {
+    if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
   });
 });
 levelsInput.addEventListener('change', () => {
