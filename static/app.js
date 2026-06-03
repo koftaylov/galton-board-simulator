@@ -428,6 +428,10 @@ const getAvalancheLaunchGapFrames = () => {
 const updateLaunchCounter = (launched, total) => {
   if (!launchCounter) return;
   const currentRunIndex = totalRuns - runsRemaining + 1;
+  const runDigits = `${Math.max(currentRunIndex, totalRuns)}`.length;
+  const ballDigits = `${Math.max(launched, total)}`.length;
+  launchCounter.style.setProperty('--run-digits', runDigits);
+  launchCounter.style.setProperty('--ball-digits', ballDigits);
   launchCounter.innerHTML = `
     <span class="counter-label">Run</span>
     <span class="counter-value">${currentRunIndex}</span>

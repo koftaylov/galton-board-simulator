@@ -396,7 +396,7 @@ button:hover {
 
 .launch-counter {
   display: grid;
-  grid-template-columns: 30px 48px 8px 48px 72px 64px 8px 64px;
+  grid-template-columns: max-content calc(var(--run-digits, 1) * 1ch) max-content calc(var(--run-digits, 1) * 1ch) max-content calc(var(--ball-digits, 1) * 1ch) max-content calc(var(--ball-digits, 1) * 1ch);
   gap: 4px;
   align-items: center;
   justify-content: center;
