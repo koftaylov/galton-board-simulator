@@ -2,6 +2,7 @@ const ballsInput = document.getElementById('balls');
 const levelsInput = document.getElementById('levels');
 const runsInput = document.getElementById('runs');
 const speedInput = document.getElementById('speed');
+const feelPresetInput = document.getElementById('feelPreset');
 const biasInput = document.getElementById('bias');
 const biasValueInput = document.getElementById('biasValue');
 const generateButton = document.getElementById('generate');
@@ -10,6 +11,7 @@ const stopButton = document.getElementById('stop');
 const appShell = document.querySelector('.app-shell');
 const settingsPaneToggle = document.getElementById('settingsPaneToggle');
 const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
+const physicsModeInputs = Array.from(document.querySelectorAll('input[name="physicsMode"]'));
 const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
 const ghostToggle = document.getElementById('ghostToggle');
@@ -85,7 +87,22 @@ const WILDCARD_COLORS = {
   wildcard: '#ffffff',    // white
 };
 
+const FEEL_PRESETS = {
+  floaty: { frameScale: 1.75, arcScale: 2.1, verticalPower: 1.28, landingSpeed: 1 },
+  heavy: { frameScale: 0.82, arcScale: 0.78, verticalPower: 2.25, landingSpeed: 1.85 },
+  pinball: { frameScale: 0.58, arcScale: 2.45, verticalPower: 1.18, landingSpeed: 2.1 },
+  marble: { frameScale: 0.96, arcScale: 1.45, verticalPower: 1.55, landingSpeed: 1.45 },
+};
+
 const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
+const getPhysicsMode = () => physicsModeInputs.find(input => input.checked)?.value || 'simple';
+const getFeelPreset = () => FEEL_PRESETS[feelPresetInput?.value] ? feelPresetInput.value : 'marble';
+const getFeelSettings = () => {
+  if (getPhysicsMode() !== 'gravity') {
+    return { frameScale: 1, arcScale: 1, verticalPower: 1, landingSpeed: 1 };
+  }
+  return FEEL_PRESETS[getFeelPreset()];
+};
 const getHistogramMode = () => histogramModeInputs.find(input => input.checked)?.value || 'bars';
 const getSelectedCurrentLabelModes = () => currentLabelModeInputs
   .filter(input => input.checked && input.value !== 'off')
@@ -445,9 +462,9 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   }
 
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
-  const finalBounceY = currentLayout.bottom - Math.min(26, currentLayout.rowSpacing * 0.45);
-  path.push({ x: finalX, y: finalBounceY });
-  path.push({ x: finalX, y: currentLayout.height - BALL_R - 8, arc: 0, speedScale: 1.35 });
+  const finalBounceY = currentLayout.bottom - Math.min(34, currentLayout.rowSpacing * 0.72);
+  path.push({ x: finalX, y: finalBounceY, arc: Math.max(24, currentLayout.rowSpacing * 0.95), finalPegBounce: true });
+  path.push({ x: finalX, y: currentLayout.height - BALL_R - 8, arc: 0, speedScale: 1 });
 
   return { path, bin: index, color };
 };
@@ -806,7 +823,10 @@ const runAnimation = (totalBalls, levels, layout) => {
     const normalDistance = Math.sqrt(Math.pow(layout.pegSpacing / 2, 2) + Math.pow(layout.rowSpacing, 2));
     const distanceRatio = normalDistance > 0 ? distance / normalDistance : 1;
     const speedScale = to.speedScale || 1;
-    return Math.max(1, (getFramesPerStep() * speedMult * distanceRatio) / speedScale);
+    const feel = getFeelSettings();
+    const landingScale = to.arc === 0 ? feel.landingSpeed : 1;
+    const segmentDistanceRatio = to.arc === 0 ? 1 : distanceRatio;
+    return Math.max(1, (getFramesPerStep() * speedMult * segmentDistanceRatio * feel.frameScale) / (speedScale * landingScale));
   };
   const getLandingThresholdY = (bin) => {
     const areaBottom = layout.height - 8;
@@ -1004,10 +1024,12 @@ const runAnimation = (totalBalls, levels, layout) => {
       
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
-      const segmentAmplitude = to.arc ?? active.amplitude;
+      const feel = getFeelSettings();
+      const motionT = feel.verticalPower === 1 ? t : Math.pow(t, feel.verticalPower);
+      const segmentAmplitude = (to.arc ?? active.amplitude) * feel.arcScale;
       const arc = Math.sin(Math.PI * t) * segmentAmplitude;
       active.x = from.x + (to.x - from.x) * t;
-      active.y = from.y + (to.y - from.y) * t - arc;
+      active.y = from.y + (to.y - from.y) * motionT - arc;
       const lastTrailPoint = active.trail[active.trail.length - 1];
       const dx = active.x - lastTrailPoint.x;
       const dy = active.y - lastTrailPoint.y;

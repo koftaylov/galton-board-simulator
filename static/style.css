@@ -94,6 +94,7 @@ body {
 .mode-selector,
 .sound-selector,
 .histogram-selector,
+.physics-selector,
 .current-label-selector,
 .label-stat-selector {
   display: flex;
@@ -108,6 +109,7 @@ body {
 .mode-selector legend,
 .sound-selector legend,
 .histogram-selector legend,
+.physics-selector legend,
 .current-label-selector legend,
 .label-stat-selector legend {
   width: 100%;
@@ -119,6 +121,7 @@ body {
 .mode-selector label,
 .sound-selector label,
 .histogram-selector label,
+.physics-selector label,
 .current-label-selector label,
 .label-stat-selector label {
   min-width: 0;
@@ -127,6 +130,7 @@ body {
 .mode-selector input,
 .sound-selector input,
 .histogram-selector input,
+.physics-selector input,
 .current-label-selector input,
 .label-stat-selector input {
   position: fixed;
@@ -139,6 +143,7 @@ body {
 .mode-selector span,
 .sound-selector span,
 .histogram-selector span,
+.physics-selector span,
 .current-label-selector span,
 .label-stat-selector span {
   display: flex;
@@ -159,6 +164,7 @@ body {
 .mode-selector label:first-of-type span,
 .sound-selector label:first-of-type span,
 .histogram-selector label:first-of-type span,
+.physics-selector label:first-of-type span,
 .current-label-selector label:first-of-type span,
 .label-stat-selector label:first-of-type span {
   border-radius: 8px 0 0 8px;
@@ -167,6 +173,7 @@ body {
 .mode-selector label:last-of-type span,
 .sound-selector label:last-of-type span,
 .histogram-selector label:last-of-type span,
+.physics-selector label:last-of-type span,
 .current-label-selector label:last-of-type span,
 .label-stat-selector label:last-of-type span {
   border-radius: 0 8px 8px 0;
@@ -175,6 +182,7 @@ body {
 .mode-selector input:checked + span,
 .sound-selector input:checked + span,
 .histogram-selector input:checked + span,
+.physics-selector input:checked + span,
 .current-label-selector input:checked + span,
 .label-stat-selector input:checked + span {
   border-color: #38bdf8;
@@ -185,6 +193,7 @@ body {
 .mode-selector input:focus-visible + span,
 .sound-selector input:focus-visible + span,
 .histogram-selector input:focus-visible + span,
+.physics-selector input:focus-visible + span,
 .current-label-selector input:focus-visible + span,
 .label-stat-selector input:focus-visible + span {
   outline: 2px solid #7dd3fc;
@@ -193,6 +202,7 @@ body {
 
 .sound-selector span,
 .histogram-selector span,
+.physics-selector span,
 .current-label-selector span,
 .label-stat-selector span {
   padding: 0 10px;
@@ -568,6 +578,7 @@ button:hover {
 
   .sound-selector,
   .histogram-selector,
+  .physics-selector,
   .current-label-selector,
   .label-stat-selector {
     display: grid;
@@ -580,6 +591,8 @@ button:hover {
   .sound-selector label:last-of-type span,
   .histogram-selector label:first-of-type span,
   .histogram-selector label:last-of-type span,
+  .physics-selector label:first-of-type span,
+  .physics-selector label:last-of-type span,
   .current-label-selector label:first-of-type span,
   .current-label-selector label:last-of-type span,
   .label-stat-selector label:first-of-type span,
@@ -590,6 +603,7 @@ button:hover {
   .mode-selector span,
   .sound-selector span,
   .histogram-selector span,
+  .physics-selector span,
   .current-label-selector span,
   .label-stat-selector span {
     border-radius: 8px;

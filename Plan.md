@@ -10,7 +10,7 @@
 - [x] when I click Sticky in modes I do not want it make sticky  balls on last level
 - [x] if it's possible and it's easy to do - make left pane scrollable, so if there more settings I can scroll it but pegs and balls always on it's place
 - [x] add toggle Show buckets (place it on new line and combine with Show bars one, make Off, Buckets, Bars). Off show no histogram, Bars show histogram, Buckets show kind of bucket - rectangles with left, bottom and right sides and balls falling in them and are keeping be there overlapping a bit, so it looks like ther era balls in glass. more balls - heiher stack.
-- [ ] Gravity and bounce style: add feel presets such as floaty, heavy, pinball, and marble. add one chose toggle: Simple, Gravity.
+- [x] Gravity and bounce style: add feel presets such as floaty, heavy, pinball, and marble. add one chose toggle: Simple, Gravity.
 
 - [ ] design way to publish it in website, ideally with github ci/cd (will it work in free account?). do not implement, just discuss it and make a plan.
 
