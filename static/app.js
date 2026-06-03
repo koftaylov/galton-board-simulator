@@ -17,6 +17,7 @@ const barToggle = document.getElementById('barToggle');
 const backgroundToggle = document.getElementById('backgroundToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 const labelStatModeInputs = Array.from(document.querySelectorAll('input[name="labelStatMode"]'));
+const currentLabelModeInputs = Array.from(document.querySelectorAll('input[name="currentLabelMode"]'));
 
 const factorials = [1];
 const getFactorial = (n) => {
@@ -83,6 +84,9 @@ const WILDCARD_COLORS = {
 };
 
 const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
+const getSelectedCurrentLabelModes = () => currentLabelModeInputs
+  .filter(input => input.checked && input.value !== 'off')
+  .map(input => input.value);
 const getSelectedLabelStatModes = () => labelStatModeInputs
   .filter(input => input.checked && input.value !== 'off')
   .map(input => input.value);
@@ -621,6 +625,9 @@ const renderLabels = (bins, layout) => {
   labelsContainer.style.width = `${bins.length * columnWidth}px`;
   labelsContainer.innerHTML = '';
   const total = bins.reduce((s, v) => s + v, 0) || 0;
+  const currentLabelModes = getSelectedCurrentLabelModes();
+  const showRatio = currentLabelModes.includes('ratio');
+  const showBalls = currentLabelModes.includes('balls');
   const summaryModes = getSelectedLabelStatModes();
   const statsRuns = historicalStats.filter(values => values && values.length === bins.length);
   const summaryLabels = {
@@ -649,7 +656,7 @@ const renderLabels = (bins, layout) => {
   if (summaryModes.length > 0) {
     const headings = document.createElement('div');
     headings.className = 'label-summary-headings';
-    headings.innerHTML = `<div class="pct"></div><div class="cnt"></div>${summaryModes
+    headings.innerHTML = `${showRatio ? '<div class="pct"></div>' : ''}${showBalls ? '<div class="cnt"></div>' : ''}${summaryModes
       .map(mode => `<div class="summary">${summaryLabels[mode]}</div>`)
       .join('')}`;
     labelsContainer.appendChild(headings);
@@ -662,7 +669,7 @@ const renderLabels = (bins, layout) => {
     const el = document.createElement('div');
     el.className = 'label';
     el.style.width = `${columnWidth}px`;
-    el.innerHTML = `<div class="pct">${pct}%</div><div class="cnt">${value}</div>${summaries}`;
+    el.innerHTML = `${showRatio ? `<div class="pct">${pct}%</div>` : ''}${showBalls ? `<div class="cnt">${value}</div>` : ''}${summaries}`;
     labelsContainer.appendChild(el);
   }
 };
@@ -1210,6 +1217,26 @@ labelStatModeInputs.forEach(input => {
     if (!isStatsHistoryEnabled()) {
       historicalStats = [];
     }
+    if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+  });
+});
+currentLabelModeInputs.forEach(input => {
+  input.addEventListener('change', () => {
+    const offInput = currentLabelModeInputs.find(option => option.value === 'off');
+    const valueInputs = currentLabelModeInputs.filter(option => option.value !== 'off');
+
+    if (input.value === 'off' && input.checked) {
+      valueInputs.forEach(option => {
+        option.checked = false;
+      });
+    } else if (input.checked) {
+      offInput.checked = false;
+    }
+
+    if (!valueInputs.some(option => option.checked)) {
+      offInput.checked = true;
+    }
+
     if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
   });
 });

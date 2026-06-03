@@ -39,6 +39,7 @@ body {
 
 .mode-selector,
 .sound-selector,
+.current-label-selector,
 .label-stat-selector {
   display: flex;
   align-items: stretch;
@@ -51,6 +52,7 @@ body {
 
 .mode-selector legend,
 .sound-selector legend,
+.current-label-selector legend,
 .label-stat-selector legend {
   width: 100%;
   margin-bottom: 8px;
@@ -60,12 +62,14 @@ body {
 
 .mode-selector label,
 .sound-selector label,
+.current-label-selector label,
 .label-stat-selector label {
   min-width: 0;
 }
 
 .mode-selector input,
 .sound-selector input,
+.current-label-selector input,
 .label-stat-selector input {
   position: absolute;
   opacity: 0;
@@ -74,6 +78,7 @@ body {
 
 .mode-selector span,
 .sound-selector span,
+.current-label-selector span,
 .label-stat-selector span {
   display: flex;
   align-items: center;
@@ -92,18 +97,21 @@ body {
 
 .mode-selector label:first-of-type span,
 .sound-selector label:first-of-type span,
+.current-label-selector label:first-of-type span,
 .label-stat-selector label:first-of-type span {
   border-radius: 8px 0 0 8px;
 }
 
 .mode-selector label:last-of-type span,
 .sound-selector label:last-of-type span,
+.current-label-selector label:last-of-type span,
 .label-stat-selector label:last-of-type span {
   border-radius: 0 8px 8px 0;
 }
 
 .mode-selector input:checked + span,
 .sound-selector input:checked + span,
+.current-label-selector input:checked + span,
 .label-stat-selector input:checked + span {
   border-color: #38bdf8;
   background: #075985;
@@ -112,12 +120,14 @@ body {
 
 .mode-selector input:focus-visible + span,
 .sound-selector input:focus-visible + span,
+.current-label-selector input:focus-visible + span,
 .label-stat-selector input:focus-visible + span {
   outline: 2px solid #7dd3fc;
   outline-offset: 2px;
 }
 
 .sound-selector span,
+.current-label-selector span,
 .label-stat-selector span {
   padding: 0 10px;
 }
@@ -459,6 +469,7 @@ button:hover {
   }
 
   .sound-selector,
+  .current-label-selector,
   .label-stat-selector {
     display: grid;
     grid-template-columns: 1fr;
@@ -468,6 +479,8 @@ button:hover {
   .mode-selector label:last-of-type span,
   .sound-selector label:first-of-type span,
   .sound-selector label:last-of-type span,
+  .current-label-selector label:first-of-type span,
+  .current-label-selector label:last-of-type span,
   .label-stat-selector label:first-of-type span,
   .label-stat-selector label:last-of-type span {
     border-radius: 8px;
@@ -475,6 +488,7 @@ button:hover {
 
   .mode-selector span,
   .sound-selector span,
+  .current-label-selector span,
   .label-stat-selector span {
     border-radius: 8px;
   }
