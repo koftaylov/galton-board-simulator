@@ -59,6 +59,18 @@
           <input id="biasValue" type="number" min="0" max="100" value="50" aria-label="Right bias percentage" />
         </div>
       </label>
+      <fieldset class="wildcard-operation-selector" aria-label="Wildcard operation">
+        <legend>Wildcard edit:</legend>
+        <label>
+          <input type="radio" name="wildcardOperation" value="add" checked />
+          <span>+</span>
+        </label>
+        <label>
+          <input type="radio" name="wildcardOperation" value="remove" />
+          <span>-</span>
+        </label>
+        <button id="clearWildcardStates" class="wildcard-off-button" type="button">Off</button>
+      </fieldset>
       <fieldset class="wildcard-selector" aria-label="Wildcard obstacles">
         <legend>Wildcards:</legend>
         <label class="wildcard-mirror">

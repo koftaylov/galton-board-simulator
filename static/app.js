@@ -20,6 +20,8 @@ const lineStatsToggle = document.getElementById('lineStatsToggle');
 const histogramModeInputs = Array.from(document.querySelectorAll('input[name="histogramMode"]'));
 const backgroundToggle = document.getElementById('backgroundToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
+const wildcardOperationInputs = Array.from(document.querySelectorAll('input[name="wildcardOperation"]'));
+const clearWildcardStatesButton = document.getElementById('clearWildcardStates');
 const labelStatModeInputs = Array.from(document.querySelectorAll('input[name="labelStatMode"]'));
 const currentLabelModeInputs = Array.from(document.querySelectorAll('input[name="currentLabelMode"]'));
 
@@ -114,6 +116,26 @@ const isStatsHistoryEnabled = () => !!saveStatsToggle?.checked || !!lineStatsTog
 const getSelectedWildcardTypes = () => wildcardTypeInputs
   .filter(input => input.checked)
   .map(input => input.value);
+const getWildcardOperation = () => wildcardOperationInputs.find(input => input.checked)?.value || 'add';
+const getEditablePegCount = () => currentLayout
+  ? currentLayout.rows.reduce((sum, row) => sum + row.length, 0)
+  : 0;
+const getWildcardBatchSize = () => {
+  const editablePegCount = getEditablePegCount();
+  if (editablePegCount <= 0) return 0;
+  const minBatch = Math.max(1, Math.floor(editablePegCount * 0.02));
+  const maxBatch = Math.max(minBatch, Math.ceil(editablePegCount * 0.05));
+  return Math.floor(minBatch + Math.random() * ((maxBatch - minBatch) + 1));
+};
+const resolveWildcardType = (selectedWildcards) => {
+  let chosen = selectedWildcards[Math.floor(Math.random() * selectedWildcards.length)];
+  if (chosen === 'wildcard') {
+    const others = selectedWildcards.filter(t => t !== 'wildcard');
+    const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos', 'splitter', 'sticky'];
+    chosen = pool[Math.floor(Math.random() * pool.length)];
+  }
+  return chosen;
+};
 const playClickIfEnabled = () => {
   if (getSoundMode() === 'off') return;
   try {
@@ -344,23 +366,94 @@ const savePathTrail = (path, color) => {
 const applyRandomWildcards = () => {
   if (!currentLayout) return;
   const selectedWildcards = getSelectedWildcardTypes();
-  
-  for (const row of currentLayout.rows) {
+  if (selectedWildcards.length === 0) {
+    for (const row of currentLayout.rows) {
+      for (const peg of row) {
+        if (!peg.manual) peg.type = 'normal';
+      }
+    }
+    return;
+  }
+
+  const candidates = getAutoWildcardAddCandidates(selectedWildcards);
+  const selectedPegs = candidates.slice(0, getWildcardBatchSize());
+
+  for (const peg of selectedPegs) {
+    peg.type = resolveWildcardType(selectedWildcards);
+  }
+};
+
+const getAutoWildcardAddCandidates = (selectedTypes = []) => {
+  if (!currentLayout) return [];
+  const candidates = [];
+  const skipsLastRow = selectedTypes.includes('sticky');
+
+  for (let rowIndex = 1; rowIndex < currentLayout.rows.length; rowIndex += 1) {
+    if (skipsLastRow && rowIndex === currentLayout.rows.length - 1) continue;
+    const row = currentLayout.rows[rowIndex];
     for (const peg of row) {
-      if (!peg.manual) {
-        peg.type = 'normal';
-        if (selectedWildcards.length > 0 && Math.random() < 0.15) {
-          let chosen = selectedWildcards[Math.floor(Math.random() * selectedWildcards.length)];
-          if (chosen === 'wildcard') {
-            const others = selectedWildcards.filter(t => t !== 'wildcard');
-            const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos', 'splitter', 'sticky'];
-            chosen = pool[Math.floor(Math.random() * pool.length)];
-          }
-          peg.type = chosen;
-        }
+      if (!peg.manual && peg.type === 'normal') {
+        candidates.push(peg);
       }
     }
   }
+
+  return candidates.sort(() => Math.random() - 0.5);
+};
+
+const getWildcardRemoveCandidates = (type) => {
+  if (!currentLayout) return [];
+  const candidates = [];
+
+  for (let rowIndex = 0; rowIndex < currentLayout.rows.length; rowIndex += 1) {
+    for (const peg of currentLayout.rows[rowIndex]) {
+      if (peg.type !== 'normal' && (type === 'wildcard' || peg.type === type)) {
+        candidates.push(peg);
+      }
+    }
+  }
+
+  return candidates.sort(() => Math.random() - 0.5).slice(0, getWildcardBatchSize());
+};
+
+const resetWildcardButtons = () => {
+  wildcardTypeInputs.forEach(input => {
+    input.checked = false;
+  });
+};
+
+const clearAllPegStates = () => {
+  if (!currentLayout) return;
+  for (const row of currentLayout.rows) {
+    for (const peg of row) {
+      peg.type = 'normal';
+      peg.manual = false;
+    }
+  }
+  resetWildcardButtons();
+  drawBoard(currentLayout, currentAnimation?.active || null);
+};
+
+const applyWildcardCommand = (type) => {
+  if (!currentLayout) return;
+
+  const operation = getWildcardOperation();
+  const pegs = operation === 'remove'
+    ? getWildcardRemoveCandidates(type)
+    : getAutoWildcardAddCandidates([type]).slice(0, getWildcardBatchSize());
+
+  for (const peg of pegs) {
+    if (operation === 'remove') {
+      peg.type = 'normal';
+      peg.manual = false;
+    } else {
+      peg.type = resolveWildcardType([type]);
+      peg.manual = false;
+    }
+  }
+
+  resetWildcardButtons();
+  drawBoard(currentLayout, currentAnimation?.active || null);
 };
 
 const buildLayout = (levels) => {
@@ -417,6 +510,9 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       });
 
       decisionIndex = Math.floor(Math.random() * (row + 1));
+      if (row > 0 && decisionIndex === index) {
+        decisionIndex = (decisionIndex + 1 + Math.floor(Math.random() * row)) % (row + 1);
+      }
       peg = currentLayout.rows[row][decisionIndex];
     }
     
@@ -453,6 +549,8 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       y: peg.y - (PEG_R + BALL_R - 1),
       row, 
       col: decisionIndex,
+      speedScale: path[path.length - 1]?.isTeleport ? 5 : undefined,
+      arc: path[path.length - 1]?.isTeleport ? 0 : undefined,
       turn: moveRight ? 'right' : 'left' 
     });
 
@@ -1312,6 +1410,7 @@ const clearBoardPegs = () => {
 
 const clearPegsButton = document.getElementById('clearPegs');
 if (clearPegsButton) clearPegsButton.addEventListener('click', clearBoardPegs);
+if (clearWildcardStatesButton) clearWildcardStatesButton.addEventListener('click', clearAllPegStates);
 
 if (settingsPaneToggle && appShell) {
   settingsPaneToggle.addEventListener('click', () => {
@@ -1392,10 +1491,8 @@ currentLabelModeInputs.forEach(input => {
 });
 wildcardTypeInputs.forEach(input => {
   input.addEventListener('change', () => {
-    applyRandomWildcards();
-    if (currentLayout) {
-      drawBoard(currentLayout, currentAnimation?.active || null);
-    }
+    if (!input.checked) return;
+    applyWildcardCommand(input.value);
   });
 });
 histogramModeInputs.forEach(input => {

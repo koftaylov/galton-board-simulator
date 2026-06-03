@@ -73,7 +73,8 @@ Answer on free account:
   - [x] Implement Sticky: slows a ball temporarily after contact.
   - [x] Implement Chaos: ignores current bias and chooses randomly.
   - [x] Implement Wildcard: randomly chooses one enabled wildcard behavior.
-  - [ ] Tune wildcard density and placement rules.
+  - [x] Tune wildcard density and placement rules.
+  - [x] Add +/- wildcard edit mode and Off reset for peg states.
   - [ ] Add visual/audio feedback when a wildcard activates.
 - [x] Add button Pause to pause execution. Button Stop shell stop execution and remove all balls and pathes.
 - [x] Do not save path if it is not turned on from very beginning.
