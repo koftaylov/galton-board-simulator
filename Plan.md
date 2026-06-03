@@ -5,6 +5,7 @@
 - [x] add toggle to work in background when window is not in focus. currently it do nothing if it's not visible, I want it continue work if I select another tab or window.
 - [x] add toggle to show data labes for current run: Off, Balls, Ratio%. Place in in new line. they Balls and Ratio% are selected by default.
 - [x] add button in top left corner to hide left pape with settings. pane with pegs and balls shall move to center of page after hiding left pane. left settings pane is shown by defailt.
+- [ ] make balles disappear once they touch top of histogram (or place where it would be if it's turned off)
 - [ ] currently balls appear right on top of top peg or something, make it appear a bit above so they fall down to first peg. 
 - [ ] when I click Sticky in modes I do not want it make sticky  balls on last level
 - [x] if it's possible and it's easy to do - make left pane scrollable, so if there more settings I can scroll it but pegs and balls always on it's place
