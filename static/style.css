@@ -1,30 +1,84 @@
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
   background: #0f172a;
   color: #e2e8f0;
+  height: 100%;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 .app-shell {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   box-sizing: border-box;
+  position: relative;
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
   gap: 32px;
-  align-items: center;
+  align-items: stretch;
   padding: 24px;
+  overflow: hidden;
 }
 
+.app-shell.settings-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
 
+.settings-pane-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+}
+
+.settings-pane-toggle:hover {
+  background: #1e293b;
+}
 
 .controls {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
   gap: 18px 12px;
   margin: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  padding-top: 36px;
+  padding-bottom: 72px;
+  scroll-padding-bottom: 72px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  align-self: start;
+  scrollbar-color: #334155 transparent;
+}
+
+.app-shell.settings-collapsed .controls {
+  position: absolute;
+  width: 340px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-24px);
+}
+
+.app-shell.settings-collapsed .board-section {
+  justify-self: center;
+  width: min(100%, 1120px);
 }
 
 .controls label {
@@ -71,9 +125,11 @@ body {
 .sound-selector input,
 .current-label-selector input,
 .label-stat-selector input {
-  position: absolute;
+  position: fixed;
   opacity: 0;
   pointer-events: none;
+  width: 1px;
+  height: 1px;
 }
 
 .mode-selector span,
@@ -188,9 +244,11 @@ input[type="range"] {
 }
 
 .wildcard-selector input {
-  position: absolute;
+  position: fixed;
   opacity: 0;
   pointer-events: none;
+  width: 1px;
+  height: 1px;
 }
 
 .wildcard-selector span {
@@ -298,9 +356,11 @@ button:hover {
 }
 
 .toggle-control input {
-  position: absolute;
+  position: fixed;
   opacity: 0;
   pointer-events: none;
+  width: 1px;
+  height: 1px;
 }
 
 .toggle-control span {
@@ -338,7 +398,10 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  grid-column: 1 / -1;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid #334155;
@@ -347,14 +410,20 @@ button:hover {
   color: #cbd5e1;
   font-size: 14px;
   font-weight: 600;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
 }
 
 .board-section {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   min-width: 0;
+  height: calc(100vh - 48px);
+  min-height: 0;
   margin: 0;
+  overflow: hidden;
+  position: relative;
 }
 
 
@@ -366,7 +435,8 @@ button:hover {
 .board-canvas {
   width: 100%;
   max-width: 1040px;
-  min-height: 568px; /* keeps board space and adds 50% more histogram room */
+  max-height: calc(100vh - 112px);
+  min-height: 0;
   border-radius: 8px;
   background: transparent; /* blend with page background */
   box-shadow: none;
@@ -445,7 +515,7 @@ button:hover {
 @media (max-width: 920px) {
   .app-shell {
     grid-template-columns: 1fr;
-    align-items: start;
+    align-items: stretch;
     gap: 24px;
   }
 
@@ -454,7 +524,7 @@ button:hover {
   }
 
   .board-canvas {
-    min-height: 560px;
+    max-height: calc(100vh - 112px);
   }
 }
 

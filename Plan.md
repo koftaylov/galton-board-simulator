@@ -4,8 +4,10 @@
 ### todo
 - [x] add toggle to work in background when window is not in focus. currently it do nothing if it's not visible, I want it continue work if I select another tab or window.
 - [x] add toggle to show data labes for current run: Off, Balls, Ratio%. Place in in new line. they Balls and Ratio% are selected by default.
-- [ ] add button in top left corner to hide left pape with settings. pane with pegs and balls shall move to center of page after hiding left pane. left settings pane is shown by defailt.
-- [ ] if it's possible and it's easy to do - make left pane scrollable, so if there more settings I can scroll it but pegs and balls always on it's place
+- [x] add button in top left corner to hide left pape with settings. pane with pegs and balls shall move to center of page after hiding left pane. left settings pane is shown by defailt.
+- [ ] currently balls appear right on top of top peg or something, make it appear a bit above so they fall down to first peg. 
+- [ ] when I click Sticky in modes I do not want it make sticky  balls on last level
+- [x] if it's possible and it's easy to do - make left pane scrollable, so if there more settings I can scroll it but pegs and balls always on it's place
 - [ ] add toggle Show buckets (place it on new line and combine with Show bars one, make Off, Buckets, Bars). Off show no histogram, Bars show histogram, Buckets show kind of bucket - rectangles with left, bottom and right sides and balls falling in them and are keeping be there overlapping a bit, so it looks like ther era balls in glass. more balls - heiher stack.
 - [ ] Gravity and bounce style: add feel presets such as floaty, heavy, pinball, and marble. add one chose toggle: Simple, Gravity.
 
@@ -64,3 +66,5 @@
 
 ## Bugs
 - [x] balls slows down after last level, I want them falling with the same speed
+- [ ] scalse of stats (bars and lines) are changeing while balls are reaching buckets. I believe because it use the same scale as current run histogram, so if max of stat is 30% and max of histogram after first ball is 100% the scale for both charts and adjusted to 100% and that's why stats chart "moving". can we have different scales for stats and histogram?
+-[ ] if I change mode to No vis after simulation already began it stops to launching new balls, already launched balls fall down and nothing happens next. I have to click Simulate again, which breaks flow. I woulsd like to change mode seamless

@@ -8,9 +8,10 @@
 </head>
 <body>
   <div class="app-shell">
+    <button id="settingsPaneToggle" class="settings-pane-toggle" type="button" aria-expanded="true" aria-controls="settingsPane">Hide settings</button>
 
 
-    <section class="controls">
+    <section id="settingsPane" class="controls">
       <label>
         Balls:
         <input id="balls" type="number" min="1" max="1000000" value="200" />
@@ -106,7 +107,6 @@
         <button id="stop" class="stop">Stop</button>
         <button id="clearPegs" class="clear">Clear</button>
       </div>
-      <div id="launchCounter" class="launch-counter" aria-live="polite">Launched 0 / 0</div>
       <fieldset class="sound-selector" aria-label="Sound mode">
         <legend>Sound:</legend>
         <label>
@@ -201,6 +201,7 @@
     </section>
 
     <section class="board-section">
+      <div id="launchCounter" class="launch-counter" aria-live="polite">Launched 0 / 0</div>
       <div id="boardStatus" class="board-status">Ready</div>
       <canvas id="boardCanvas" class="board-canvas" aria-label="Galton board simulation"></canvas>
       <div id="labels" class="labels" aria-hidden="true"></div>

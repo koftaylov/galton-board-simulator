@@ -7,6 +7,8 @@ const biasValueInput = document.getElementById('biasValue');
 const generateButton = document.getElementById('generate');
 const pauseButton = document.getElementById('pause');
 const stopButton = document.getElementById('stop');
+const appShell = document.querySelector('.app-shell');
+const settingsPaneToggle = document.getElementById('settingsPaneToggle');
 const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
 const pathToggle = document.getElementById('pathToggle');
 const turnColorToggle = document.getElementById('turnColorToggle');
@@ -1171,6 +1173,15 @@ const clearBoardPegs = () => {
 
 const clearPegsButton = document.getElementById('clearPegs');
 if (clearPegsButton) clearPegsButton.addEventListener('click', clearBoardPegs);
+
+if (settingsPaneToggle && appShell) {
+  settingsPaneToggle.addEventListener('click', () => {
+    const isCollapsed = appShell.classList.toggle('settings-collapsed');
+    settingsPaneToggle.textContent = isCollapsed ? 'Show settings' : 'Hide settings';
+    settingsPaneToggle.setAttribute('aria-expanded', `${!isCollapsed}`);
+    requestAnimationFrame(resizeCanvas);
+  });
+}
 
 generateButton.addEventListener('click', startSimulation);
 if (pauseButton) pauseButton.addEventListener('click', togglePause);
