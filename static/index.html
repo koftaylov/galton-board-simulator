@@ -201,7 +201,16 @@
     </section>
 
     <section class="board-section">
-      <div id="launchCounter" class="launch-counter" aria-live="polite">Launched 0 / 0</div>
+      <div id="launchCounter" class="launch-counter" aria-live="polite">
+        <span class="counter-label">Run</span>
+        <span class="counter-value">1</span>
+        <span class="counter-separator">/</span>
+        <span class="counter-value">1</span>
+        <span class="counter-label">Launched</span>
+        <span class="counter-value">0</span>
+        <span class="counter-separator">/</span>
+        <span class="counter-value">0</span>
+      </div>
       <div id="boardStatus" class="board-status">Ready</div>
       <canvas id="boardCanvas" class="board-canvas" aria-label="Galton board simulation"></canvas>
       <div id="labels" class="labels" aria-hidden="true"></div>

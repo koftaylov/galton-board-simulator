@@ -395,7 +395,9 @@ button:hover {
 }
 
 .launch-counter {
-  display: flex;
+  display: grid;
+  grid-template-columns: 30px 48px 8px 48px 72px 64px 8px 64px;
+  gap: 4px;
   align-items: center;
   justify-content: center;
   position: fixed;
@@ -411,6 +413,22 @@ button:hover {
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+}
+
+.counter-label {
+  color: #94a3b8;
+  text-align: left;
+}
+
+.counter-value,
+.counter-separator {
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.counter-separator {
+  text-align: center;
 }
 
 .board-section {
