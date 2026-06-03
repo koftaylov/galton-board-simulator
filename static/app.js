@@ -14,6 +14,7 @@ const ghostToggle = document.getElementById('ghostToggle');
 const saveStatsToggle = document.getElementById('saveStatsToggle');
 const lineStatsToggle = document.getElementById('lineStatsToggle');
 const barToggle = document.getElementById('barToggle');
+const backgroundToggle = document.getElementById('backgroundToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 const labelStatModeInputs = Array.from(document.querySelectorAll('input[name="labelStatMode"]'));
 
@@ -672,8 +673,12 @@ const runAnimation = (totalBalls, levels, layout) => {
   let frameCount = 0;
   let launchedCount = 0;
   let noVisIndex = 0;
+  let lastAnimationTimestamp = null;
+  let catchUpRemainderMs = 0;
   const activeBalls = [];
   currentBins = Array(levels + 1).fill(0);
+  const FRAME_MS = 1000 / 60;
+  const MAX_CATCH_UP_STEPS = 900;
 
   const clearAllTimeouts = () => { timeoutIds.forEach(id => clearTimeout(id)); timeoutIds = []; };
   const scheduleTimeout = (callback, delay) => {
@@ -833,22 +838,21 @@ const runAnimation = (totalBalls, levels, layout) => {
     rafId = requestAnimationFrame(animateFrame);
   };
 
-  const animateFrame = () => {
+  const advanceAnimationStep = (allowAudio = true) => {
     if (cancelFlag) {
       if (rafId) cancelAnimationFrame(rafId);
       boardStatus.textContent = 'Stopped';
       generateButton.disabled = false;
-      return;
+      return true;
     }
 
     if (activeBalls.length === 0) {
       if (nextIndex >= totalBalls) completeAnimation();
-      return;
+      return true;
     }
 
     if (isPaused) {
-      rafId = requestAnimationFrame(animateFrame);
-      return;
+      return false;
     }
 
     const launchMode = getLaunchMode();
@@ -898,7 +902,7 @@ const runAnimation = (totalBalls, levels, layout) => {
         const currentPoint = active.path[active.step];
 
         if (currentPoint && currentPoint.turn) {
-          playTurnSoundIfEnabled(currentPoint.turn, currentPoint.row);
+          if (allowAudio) playTurnSoundIfEnabled(currentPoint.turn, currentPoint.row);
         }
 
         // Check for Splitter and Sticky wildcards upon peg contact
@@ -953,14 +957,57 @@ const runAnimation = (totalBalls, levels, layout) => {
       }
     }
 
-    if (shouldPlayLanding) playClickIfEnabled();
+    if (shouldPlayLanding && allowAudio) playClickIfEnabled();
 
     currentAnimation = { active: activeBalls };
     boardStatus.textContent = `Animating ball ${Math.min(nextIndex, totalBalls)} of ${totalBalls}`;
-    drawBoard(layout, activeBalls);
 
     if (activeBalls.length === 0 && nextIndex >= totalBalls) {
       completeAnimation();
+      return true;
+    }
+
+    return false;
+  };
+
+  const animateFrame = (timestamp = performance.now()) => {
+    if (isPaused) {
+      lastAnimationTimestamp = timestamp;
+      rafId = requestAnimationFrame(animateFrame);
+      return;
+    }
+
+    if (lastAnimationTimestamp === null) {
+      lastAnimationTimestamp = timestamp;
+    }
+
+    let stepsToRun = 1;
+    if (backgroundToggle?.checked) {
+      const elapsedMs = Math.max(0, timestamp - lastAnimationTimestamp) + catchUpRemainderMs;
+      stepsToRun = Math.min(MAX_CATCH_UP_STEPS, Math.floor(elapsedMs / FRAME_MS));
+      catchUpRemainderMs = Math.max(0, elapsedMs - (stepsToRun * FRAME_MS));
+    } else {
+      catchUpRemainderMs = 0;
+    }
+    lastAnimationTimestamp = timestamp;
+
+    if (stepsToRun === 0) {
+      drawBoard(layout, activeBalls);
+      rafId = requestAnimationFrame(animateFrame);
+      return;
+    }
+
+    let isComplete = false;
+    for (let step = 0; step < stepsToRun; step += 1) {
+      isComplete = advanceAnimationStep(step === stepsToRun - 1);
+      if (isComplete) break;
+    }
+
+    if (!isComplete) {
+      drawBoard(layout, activeBalls);
+    }
+
+    if (cancelFlag || (activeBalls.length === 0 && nextIndex >= totalBalls)) {
       return;
     }
 
