@@ -523,17 +523,18 @@ const drawBinsOnCanvas = (layout, bins) => {
     return total > 0 ? values[index] / total : 0;
   };
 
-  // Scale by bucket percentage so 10, 200, and 10K ball runs use the same visual scale.
-  let maxRate = 0.01;
+  // Current bars and historical stats have separate scales so saved stats do not move during a run.
+  let currentMaxRate = 0.01;
+  let historyMaxRate = 0.01;
   const currentTotal = getTotal(bins);
   if (currentTotal > 0) {
-    maxRate = Math.max(maxRate, ...bins.map(value => value / currentTotal));
+    currentMaxRate = Math.max(currentMaxRate, ...bins.map(value => value / currentTotal));
   }
   if (isStatsHistoryEnabled()) {
     for (const histBins of historicalStats) {
       const histTotal = getTotal(histBins);
       if (histTotal > 0) {
-        maxRate = Math.max(maxRate, ...histBins.map(value => value / histTotal));
+        historyMaxRate = Math.max(historyMaxRate, ...histBins.map(value => value / histTotal));
       }
     }
   }
@@ -556,7 +557,7 @@ const drawBinsOnCanvas = (layout, bins) => {
           const w = Math.floor(layout.pegSpacing * 0.8); // slightly wider for outline
           const left = xCenter - w / 2;
           const rate = getRate(histBins, i);
-          const h = Math.round((rate / maxRate) * (areaHeight - 8));
+          const h = Math.round((rate / historyMaxRate) * (areaHeight - 8));
           if (rate > 0) {
             ctx.strokeRect(left, areaBottom - h, w, h);
           }
@@ -569,7 +570,7 @@ const drawBinsOnCanvas = (layout, bins) => {
         for (let i = 0; i < binCount; i++) {
           const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
           const rate = getRate(histBins, i);
-          const h = Math.round((rate / maxRate) * (areaHeight - 8));
+          const h = Math.round((rate / historyMaxRate) * (areaHeight - 8));
           const y = areaBottom - h;
           if (i === 0) ctx.moveTo(xCenter, y);
           else ctx.lineTo(xCenter, y);
@@ -586,7 +587,7 @@ const drawBinsOnCanvas = (layout, bins) => {
       const w = Math.floor(layout.pegSpacing * 0.6);
       const left = xCenter - w / 2;
       const rate = getRate(bins, i);
-      const h = Math.round((rate / maxRate) * (areaHeight - 8));
+      const h = Math.round((rate / currentMaxRate) * (areaHeight - 8));
       if (rate > 0) {
         ctx.fillStyle = 'rgba(96,165,250,0.95)';
         ctx.fillRect(left, areaBottom - h, w, h);
@@ -731,14 +732,6 @@ const runAnimation = (totalBalls, levels, layout) => {
     if (currentTotal > 0) {
       maxRate = Math.max(maxRate, ...currentBins.map(value => value / currentTotal));
     }
-    if (isStatsHistoryEnabled()) {
-      for (const histBins of historicalStats) {
-        const histTotal = getTotal(histBins);
-        if (histTotal > 0) {
-          maxRate = Math.max(maxRate, ...histBins.map(value => value / histTotal));
-        }
-      }
-    }
 
     const rate = currentTotal > 0 ? currentBins[bin] / currentTotal : 0;
     const barHeight = Math.round((rate / maxRate) * (areaHeight - 8));
@@ -771,6 +764,21 @@ const runAnimation = (totalBalls, levels, layout) => {
     launchedCount += 1;
     updateLaunchCounter(launchedCount, totalBalls);
     return active;
+  };
+
+  const finishRemainingWithoutVisuals = () => {
+    if (nextIndex >= totalBalls) return;
+
+    for (; nextIndex < totalBalls; nextIndex += 1) {
+      const result = simulateBallPath(levels, getRightBias());
+      currentBins[result.bin] += 1;
+      launchedCount += 1;
+      if (isPathSavingEnabled) {
+        savePathTrail(result.path, result.color);
+      }
+    }
+
+    updateLaunchCounter(launchedCount, totalBalls);
   };
 
   const completeAnimation = () => {
@@ -867,6 +875,11 @@ const runAnimation = (totalBalls, levels, layout) => {
       return true;
     }
 
+    const launchMode = getLaunchMode();
+    if (launchMode === 'no-vis' && nextIndex < totalBalls) {
+      finishRemainingWithoutVisuals();
+    }
+
     if (activeBalls.length === 0) {
       if (nextIndex >= totalBalls) completeAnimation();
       return true;
@@ -876,7 +889,6 @@ const runAnimation = (totalBalls, levels, layout) => {
       return false;
     }
 
-    const launchMode = getLaunchMode();
     frameCount += 1;
     if (nextIndex < totalBalls) {
       if (launchMode === 'all') {

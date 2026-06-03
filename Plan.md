@@ -66,5 +66,5 @@
 
 ## Bugs
 - [x] balls slows down after last level, I want them falling with the same speed
-- [ ] scalse of stats (bars and lines) are changeing while balls are reaching buckets. I believe because it use the same scale as current run histogram, so if max of stat is 30% and max of histogram after first ball is 100% the scale for both charts and adjusted to 100% and that's why stats chart "moving". can we have different scales for stats and histogram?
--[ ] if I change mode to No vis after simulation already began it stops to launching new balls, already launched balls fall down and nothing happens next. I have to click Simulate again, which breaks flow. I woulsd like to change mode seamless
+- [x] scalse of stats (bars and lines) are changeing while balls are reaching buckets. I believe because it use the same scale as current run histogram, so if max of stat is 30% and max of histogram after first ball is 100% the scale for both charts and adjusted to 100% and that's why stats chart "moving". can we have different scales for stats and histogram?
+- [x] if I change mode to No vis after simulation already began it stops to launching new balls, already launched balls fall down and nothing happens next. I have to click Simulate again, which breaks flow. I woulsd like to change mode seamless
