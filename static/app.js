@@ -391,7 +391,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   const finalBounceY = currentLayout.bottom - Math.min(26, currentLayout.rowSpacing * 0.45);
   path.push({ x: finalX, y: finalBounceY });
-  path.push({ x: finalX, y: currentLayout.bottom + 18, arc: 0 });
+  path.push({ x: finalX, y: currentLayout.height - BALL_R - 8, arc: 0, speedScale: 1.35 });
 
   return { path, bin: index, color };
 };
@@ -684,6 +684,40 @@ const runAnimation = (totalBalls, levels, layout) => {
     timeoutIds.push(timeoutId);
     return timeoutId;
   };
+  const getFramesForSegment = (from, to, speedMult = 1) => {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.sqrt((dx * dx) + (dy * dy));
+    const normalDistance = Math.sqrt(Math.pow(layout.pegSpacing / 2, 2) + Math.pow(layout.rowSpacing, 2));
+    const distanceRatio = normalDistance > 0 ? distance / normalDistance : 1;
+    const speedScale = to.speedScale || 1;
+    return Math.max(1, (getFramesPerStep() * speedMult * distanceRatio) / speedScale);
+  };
+  const getLandingThresholdY = (bin) => {
+    const areaBottom = layout.height - 8;
+    if (!barToggle?.checked || !currentBins[bin]) return areaBottom - BALL_R;
+
+    const areaTop = layout.bottom + 8;
+    const areaHeight = Math.max(48, areaBottom - areaTop);
+    const getTotal = (values) => values.reduce((sum, value) => sum + value, 0);
+    let maxRate = 0.01;
+    const currentTotal = getTotal(currentBins);
+    if (currentTotal > 0) {
+      maxRate = Math.max(maxRate, ...currentBins.map(value => value / currentTotal));
+    }
+    if (isStatsHistoryEnabled()) {
+      for (const histBins of historicalStats) {
+        const histTotal = getTotal(histBins);
+        if (histTotal > 0) {
+          maxRate = Math.max(maxRate, ...histBins.map(value => value / histTotal));
+        }
+      }
+    }
+
+    const rate = currentTotal > 0 ? currentBins[bin] / currentTotal : 0;
+    const barHeight = Math.round((rate / maxRate) * (areaHeight - 8));
+    return barHeight > 0 ? areaBottom - barHeight : areaBottom - BALL_R;
+  };
 
   const makeActiveBall = (index, result, startRow = 0) => {
     return {
@@ -836,7 +870,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       
       // Sticky effect: slow down if the ball is currently stuck
       const speedMult = active.stickySteps > 0 ? 2.5 : 1;
-      const framesPerStep = getFramesPerStep() * speedMult;
+      const framesPerStep = getFramesForSegment(from, to, speedMult);
       
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
@@ -851,7 +885,10 @@ const runAnimation = (totalBalls, levels, layout) => {
         active.trail.push({ x: active.x, y: active.y });
       }
 
-      if (t >= 1) {
+      const isFinalDrop = to.arc === 0 && active.step >= active.path.length - 2;
+      const reachedLandingSurface = isFinalDrop && active.y >= getLandingThresholdY(active.bin);
+
+      if (t >= 1 || reachedLandingSurface) {
         active.step += 1;
         active.progress = 0;
         
