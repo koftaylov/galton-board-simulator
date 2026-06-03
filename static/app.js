@@ -15,6 +15,7 @@ const saveStatsToggle = document.getElementById('saveStatsToggle');
 const lineStatsToggle = document.getElementById('lineStatsToggle');
 const barToggle = document.getElementById('barToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
+const labelStatModeInputs = Array.from(document.querySelectorAll('input[name="labelStatMode"]'));
 
 const factorials = [1];
 const getFactorial = (n) => {
@@ -81,6 +82,10 @@ const WILDCARD_COLORS = {
 };
 
 const getSoundMode = () => soundModeInputs.find(input => input.checked)?.value || 'off';
+const getSelectedLabelStatModes = () => labelStatModeInputs
+  .filter(input => input.checked && input.value !== 'off')
+  .map(input => input.value);
+const isStatsHistoryEnabled = () => !!saveStatsToggle?.checked || !!lineStatsToggle?.checked || getSelectedLabelStatModes().length > 0;
 const getSelectedWildcardTypes = () => wildcardTypeInputs
   .filter(input => input.checked)
   .map(input => input.value);
@@ -505,7 +510,7 @@ const drawBinsOnCanvas = (layout, bins) => {
   if (currentTotal > 0) {
     maxRate = Math.max(maxRate, ...bins.map(value => value / currentTotal));
   }
-  if (saveStatsToggle?.checked || lineStatsToggle?.checked) {
+  if (isStatsHistoryEnabled()) {
     for (const histBins of historicalStats) {
       const histTotal = getTotal(histBins);
       if (histTotal > 0) {
@@ -615,13 +620,48 @@ const renderLabels = (bins, layout) => {
   labelsContainer.style.width = `${bins.length * columnWidth}px`;
   labelsContainer.innerHTML = '';
   const total = bins.reduce((s, v) => s + v, 0) || 0;
+  const summaryModes = getSelectedLabelStatModes();
+  const statsRuns = historicalStats.filter(values => values && values.length === bins.length);
+  const summaryLabels = {
+    min: 'min',
+    max: 'max',
+    avg: 'avg',
+    avgPct: 'avg %',
+  };
+  const formatSummary = (mode, index) => {
+    if (statsRuns.length === 0) return '';
+    if (mode === 'avgPct') {
+      const avgRate = statsRuns.reduce((sum, values) => {
+        const runTotal = values.reduce((totalSum, value) => totalSum + value, 0);
+        return sum + (runTotal > 0 ? values[index] / runTotal : 0);
+      }, 0) / statsRuns.length;
+      return `${Math.round(avgRate * 100)}%`;
+    }
+
+    const values = statsRuns.map(run => run[index]);
+    if (mode === 'min') return `${Math.min(...values)}`;
+    if (mode === 'max') return `${Math.max(...values)}`;
+    const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+    return `${Number.isInteger(avg) ? avg : avg.toFixed(1)}`;
+  };
+
+  if (summaryModes.length > 0) {
+    const headings = document.createElement('div');
+    headings.className = 'label-summary-headings';
+    headings.innerHTML = `<div class="pct"></div><div class="cnt"></div>${summaryModes
+      .map(mode => `<div class="summary">${summaryLabels[mode]}</div>`)
+      .join('')}`;
+    labelsContainer.appendChild(headings);
+  }
+
   for (let i = 0; i < bins.length; i++) {
     const value = bins[i];
     const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+    const summaries = summaryModes.map(mode => `<div class="summary">${formatSummary(mode, i)}</div>`).join('');
     const el = document.createElement('div');
     el.className = 'label';
     el.style.width = `${columnWidth}px`;
-    el.innerHTML = `<div class="pct">${pct}%</div><div class="cnt">${value}</div>`;
+    el.innerHTML = `<div class="pct">${pct}%</div><div class="cnt">${value}</div>${summaries}`;
     labelsContainer.appendChild(el);
   }
 };
@@ -678,7 +718,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     currentAnimation = { active: null };
     
     // Save current bins to history if either toggle is on
-    if (saveStatsToggle?.checked || lineStatsToggle?.checked) {
+    if (isStatsHistoryEnabled()) {
       historicalStats.push([...currentBins]);
     }
 
@@ -1055,16 +1095,39 @@ ghostToggle.addEventListener('change', () => {
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 saveStatsToggle.addEventListener('change', () => {
-  if (!saveStatsToggle.checked && !lineStatsToggle.checked) {
-    historicalStats = []; // Clear history if both toggled off
+  if (!isStatsHistoryEnabled()) {
+    historicalStats = [];
   }
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 lineStatsToggle.addEventListener('change', () => {
-  if (!saveStatsToggle.checked && !lineStatsToggle.checked) {
-    historicalStats = []; // Clear history if both toggled off
+  if (!isStatsHistoryEnabled()) {
+    historicalStats = [];
   }
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+});
+labelStatModeInputs.forEach(input => {
+  input.addEventListener('change', () => {
+    const offInput = labelStatModeInputs.find(option => option.value === 'off');
+    const valueInputs = labelStatModeInputs.filter(option => option.value !== 'off');
+
+    if (input.value === 'off' && input.checked) {
+      valueInputs.forEach(option => {
+        option.checked = false;
+      });
+    } else if (input.checked) {
+      offInput.checked = false;
+    }
+
+    if (!valueInputs.some(option => option.checked)) {
+      offInput.checked = true;
+    }
+
+    if (!isStatsHistoryEnabled()) {
+      historicalStats = [];
+    }
+    if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+  });
 });
 wildcardTypeInputs.forEach(input => {
   input.addEventListener('change', () => {

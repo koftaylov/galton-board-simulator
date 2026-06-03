@@ -1,6 +1,6 @@
 # Visualization Ideas
 
-## Backlog
+## Backlog nice to have
 
 - [x] Turn coloring: left turns tint the ball one color, right turns another, with the final ball color becoming a blended path fingerprint.
 - [x] Path sonification: left and right bounces play different tones so each ball path becomes a small melody.
@@ -35,11 +35,10 @@
 - [ ] Bucket personalities: give buckets distinct colors, sounds, or labels, with rare outer buckets triggering special effects.
 - [ ] Slow-motion inspector: pause and scrub the simulation frame by frame.
 - [ ] Mutation mode: every N balls, one random peg changes behavior so the board evolves during the run.
-- [ ] work in background when window is not in focus. 
 - [x] replace checkboxes with multioption toggle style.
 - [x] Add mode "No vis" - launch all balls without visualisation of balls
 - [x] Add toggle and mode for saving previous stats - after finish each run draw linechart of fact distribution (pale colour), this linechart shall stay on screen until I click Clear. 
-- [ ] Add second line of data labels with average across data from stats.
+- [x] Add second line of data labels with average across data from stats.
 - [x] Fix - does not stop if several run with No vis mode
 - [x] Fix - balls do not bounce properly on last level, after touching it moves directly to basket.
 - [x] Fix - look like Chaos doesn't work at all on last level, if right bias = 100 and most right peg on last level is teleport and all the rest pegs on last level is chaos balls always select right.
@@ -47,3 +46,15 @@
 ## Favorite Combo
 
 - [ ] Combine wildcard pegs, path sonification, and heatmap trails into a probability instrument mode.
+
+## backlog todo
+- [ ] add toggle to work in background when window is not in focus. currently it do nothing if it's not visible, I want it continue work if I select another tab or window.
+- [ ] add toggle to show data labes for current run: Off, Balls, Ratio%. Place in in new line. they Balls and Ratio% are selected by default.
+- [ ] add button in top left corner to hide left pape with settings. pane with pegs and balls shall move to center of page after hiding left pane. left settings pane is shown by defailt.
+- [ ] if it's possible and it's easy to do - make left pane scrollable, so if there more settings I can scroll it but pegs and balls always on it's place
+- [ ] add toggle Show buckets (place it on new line and combine with Show bars one, make Off, Buckets, Bars). Off show no histogram, Bars show histogram, Buckets show kind of bucket - rectangles with left, bottom and right sides and balls falling in them and are keeping be there overlapping a bit, so it looks like ther era balls in glass. more balls - heiher stack.
+- [ ] design way to publish it in website, ideally with github ci/cd (will it work in free account?). do not implement, just discuss it and plan.
+- [ ] 
+
+## bugs
+- [ ] balls slows down after last level, I want them falling with the same speed

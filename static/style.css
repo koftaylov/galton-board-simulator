@@ -38,7 +38,8 @@ body {
 }
 
 .mode-selector,
-.sound-selector {
+.sound-selector,
+.label-stat-selector {
   display: flex;
   align-items: stretch;
   gap: 4px;
@@ -49,7 +50,8 @@ body {
 }
 
 .mode-selector legend,
-.sound-selector legend {
+.sound-selector legend,
+.label-stat-selector legend {
   width: 100%;
   margin-bottom: 8px;
   font-size: 14px;
@@ -57,19 +59,22 @@ body {
 }
 
 .mode-selector label,
-.sound-selector label {
+.sound-selector label,
+.label-stat-selector label {
   min-width: 0;
 }
 
 .mode-selector input,
-.sound-selector input {
+.sound-selector input,
+.label-stat-selector input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
 .mode-selector span,
-.sound-selector span {
+.sound-selector span,
+.label-stat-selector span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,29 +91,34 @@ body {
 }
 
 .mode-selector label:first-of-type span,
-.sound-selector label:first-of-type span {
+.sound-selector label:first-of-type span,
+.label-stat-selector label:first-of-type span {
   border-radius: 8px 0 0 8px;
 }
 
 .mode-selector label:last-of-type span,
-.sound-selector label:last-of-type span {
+.sound-selector label:last-of-type span,
+.label-stat-selector label:last-of-type span {
   border-radius: 0 8px 8px 0;
 }
 
 .mode-selector input:checked + span,
-.sound-selector input:checked + span {
+.sound-selector input:checked + span,
+.label-stat-selector input:checked + span {
   border-color: #38bdf8;
   background: #075985;
   color: #f8fafc;
 }
 
 .mode-selector input:focus-visible + span,
-.sound-selector input:focus-visible + span {
+.sound-selector input:focus-visible + span,
+.label-stat-selector input:focus-visible + span {
   outline: 2px solid #7dd3fc;
   outline-offset: 2px;
 }
 
-.sound-selector span {
+.sound-selector span,
+.label-stat-selector span {
   padding: 0 10px;
 }
 
@@ -357,6 +367,7 @@ button:hover {
 }
 
 .labels {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -374,6 +385,18 @@ button:hover {
   box-sizing: border-box;
 }
 
+.label-summary-headings {
+  position: absolute;
+  right: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 48px;
+  padding-right: 8px;
+}
+
 .label .pct {
   font-size: 12px;
   color: #cbd5e1;
@@ -381,6 +404,18 @@ button:hover {
 .label .cnt {
   font-size: 12px;
   color: #94a3b8;
+}
+
+.label .summary,
+.label-summary-headings .summary {
+  min-height: 14px;
+  font-size: 11px;
+  color: #7dd3fc;
+}
+
+.label-summary-headings .pct,
+.label-summary-headings .cnt {
+  min-height: 14px;
 }
 
 .stats {
@@ -423,7 +458,8 @@ button:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sound-selector {
+  .sound-selector,
+  .label-stat-selector {
     display: grid;
     grid-template-columns: 1fr;
   }
@@ -431,12 +467,15 @@ button:hover {
   .mode-selector label:first-of-type span,
   .mode-selector label:last-of-type span,
   .sound-selector label:first-of-type span,
-  .sound-selector label:last-of-type span {
+  .sound-selector label:last-of-type span,
+  .label-stat-selector label:first-of-type span,
+  .label-stat-selector label:last-of-type span {
     border-radius: 8px;
   }
 
   .mode-selector span,
-  .sound-selector span {
+  .sound-selector span,
+  .label-stat-selector span {
     border-radius: 8px;
   }
 }
