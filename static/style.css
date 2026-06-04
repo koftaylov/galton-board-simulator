@@ -321,7 +321,8 @@ input[type="range"] {
 .wildcard-mirror span { color: #06b6d4; }
 .wildcard-magnet span { color: #ef4444; }
 .wildcard-repeller span { color: #3b82f6; }
-.wildcard-teleporter span { color: #a855f7; }
+.wildcard-bumper span { color: #a855f7; }
+.wildcard-teleport span { color: #22d3ee; }
 .wildcard-splitter span { color: #10b981; }
 .wildcard-sticky span { color: #f59e0b; }
 .wildcard-chaos span { color: #ec4899; }
@@ -331,7 +332,8 @@ input[type="range"] {
 .wildcard-mirror input:checked + span { border-color: #06b6d4; background: rgba(6, 182, 212, 0.15); }
 .wildcard-magnet input:checked + span { border-color: #ef4444; background: rgba(239, 68, 68, 0.15); }
 .wildcard-repeller input:checked + span { border-color: #3b82f6; background: rgba(59, 130, 246, 0.15); }
-.wildcard-teleporter input:checked + span { border-color: #a855f7; background: rgba(168, 85, 247, 0.15); }
+.wildcard-bumper input:checked + span { border-color: #a855f7; background: rgba(168, 85, 247, 0.15); }
+.wildcard-teleport input:checked + span { border-color: #22d3ee; background: rgba(34, 211, 238, 0.15); }
 .wildcard-splitter input:checked + span { border-color: #10b981; background: rgba(16, 185, 129, 0.15); }
 .wildcard-sticky input:checked + span { border-color: #f59e0b; background: rgba(245, 158, 11, 0.15); }
 .wildcard-chaos input:checked + span { border-color: #ec4899; background: rgba(236, 72, 153, 0.15); }

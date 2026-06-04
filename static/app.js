@@ -82,17 +82,20 @@ const BASE_TOP = 48;
 const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
 const TELEPORT_DEADLOCK_LIMIT = 10;
 const TELEPORT_SPEED_SCALE = 2;
+const TELEPORT_VANISH_FRAMES = 7;
 
 const WILDCARD_COLORS = {
   mirror: '#06b6d4',      // cyan-400
   magnet: '#ef4444',      // red-500
   repeller: '#3b82f6',    // blue-500
-  teleporter: '#a855f7',  // purple-500
+  bumper: '#a855f7',      // purple-500
+  teleport: '#22d3ee',    // cyan-300
   splitter: '#10b981',    // emerald-500
   sticky: '#f59e0b',      // amber-500
   chaos: '#ec4899',       // pink-500
   wildcard: '#ffffff',    // white
   firework: '#facc15',     // yellow-400
+  teleportBurst: '#f8fafc', // slate-50
 };
 
 const FEEL_PRESETS = {
@@ -137,7 +140,7 @@ const resolveWildcardType = (selectedWildcards) => {
   let chosen = selectedWildcards[Math.floor(Math.random() * selectedWildcards.length)];
   if (chosen === 'wildcard') {
     const others = selectedWildcards.filter(t => t !== 'wildcard');
-    const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'teleporter', 'chaos', 'splitter', 'sticky'];
+    const pool = others.length > 0 ? others : ['mirror', 'magnet', 'repeller', 'bumper', 'teleport', 'chaos', 'splitter', 'sticky'];
     chosen = pool[Math.floor(Math.random() * pool.length)];
   }
   return chosen;
@@ -263,9 +266,12 @@ const createClickPlayer = () => {
       playTone(210, 'sawtooth', 0, 0.13, 0.026, 120);
     } else if (type === 'repeller') {
       playTone(180, 'square', 0, 0.09, 0.022, 620);
-    } else if (type === 'teleporter') {
+    } else if (type === 'bumper') {
       playTone(980, 'triangle', 0, 0.045, 0.026);
       playTone(1420, 'triangle', 0.055, 0.055, 0.024);
+    } else if (type === 'teleport') {
+      playTone(440, 'sine', 0, 0.08, 0.02, 1320);
+      playTone(1760, 'triangle', 0.03, 0.06, 0.022, 660);
     } else if (type === 'splitter') {
       playTone(430, 'triangle', 0, 0.09, 0.022, 620);
       playTone(430, 'triangle', 0, 0.09, 0.022, 280);
@@ -279,6 +285,10 @@ const createClickPlayer = () => {
       playTone(1320, 'square', 0, 0.035, 0.034, 360);
       playTone(180, 'sawtooth', 0, 0.055, 0.026, 90);
       playTone(720, 'triangle', 0.028, 0.045, 0.018, 1120);
+    } else if (type === 'teleportBurst') {
+      playTone(1320, 'sine', 0, 0.12, 0.032, 2200);
+      playTone(880, 'triangle', 0.035, 0.16, 0.026, 1760);
+      playTone(240, 'sine', 0.04, 0.18, 0.018, 80);
     } else {
       playTone(620, 'sine', 0, 0.08, 0.02);
     }
@@ -389,6 +399,27 @@ const repaintSavedPaths = () => {
 
 const drawSoftTrail = (targetCtx, trail, opacity = 1, color = { r: 74, g: 222, b: 128 }) => {
   if (!trail || trail.length < 2) return;
+  const strokeTrail = () => {
+    targetCtx.beginPath();
+    targetCtx.moveTo(trail[0].x, trail[0].y);
+    for (let i = 1; i < trail.length; i += 1) {
+      const prev = trail[i - 1];
+      const point = trail[i];
+      if (point.teleportArrival || point.teleportBreak) {
+        targetCtx.stroke();
+        targetCtx.beginPath();
+        targetCtx.moveTo(point.x, point.y);
+        continue;
+      }
+      const midX = (prev.x + point.x) / 2;
+      const midY = (prev.y + point.y) / 2;
+      targetCtx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+    }
+    const last = trail[trail.length - 1];
+    targetCtx.lineTo(last.x, last.y);
+    targetCtx.stroke();
+  };
+
   targetCtx.save();
   targetCtx.lineCap = 'round';
   targetCtx.lineJoin = 'round';
@@ -396,23 +427,12 @@ const drawSoftTrail = (targetCtx, trail, opacity = 1, color = { r: 74, g: 222, b
   targetCtx.shadowBlur = 12;
   targetCtx.strokeStyle = colorToRgba(color, 0.16 * opacity);
   targetCtx.lineWidth = 10;
-  targetCtx.beginPath();
-  targetCtx.moveTo(trail[0].x, trail[0].y);
-  for (let i = 1; i < trail.length; i += 1) {
-    const prev = trail[i - 1];
-    const point = trail[i];
-    const midX = (prev.x + point.x) / 2;
-    const midY = (prev.y + point.y) / 2;
-    targetCtx.quadraticCurveTo(prev.x, prev.y, midX, midY);
-  }
-  const last = trail[trail.length - 1];
-  targetCtx.lineTo(last.x, last.y);
-  targetCtx.stroke();
+  strokeTrail();
 
   targetCtx.shadowBlur = 0;
   targetCtx.strokeStyle = colorToRgba(color, 0.18 * opacity);
   targetCtx.lineWidth = 3;
-  targetCtx.stroke();
+  strokeTrail();
   targetCtx.restore();
 };
 
@@ -421,15 +441,16 @@ const drawWildcardFlashes = () => {
     const flash = wildcardFlashes[i];
     const progress = 1 - (flash.age / flash.maxAge);
     const color = WILDCARD_COLORS[flash.type] || '#ffffff';
-    const radius = PEG_R + 8 + (progress * 24);
+    const isBurst = flash.type === 'teleportBurst';
+    const radius = PEG_R + (isBurst ? 18 : 8) + (progress * (isBurst ? 42 : 24));
     const alpha = Math.max(0, flash.age / flash.maxAge);
 
     ctx.save();
-    ctx.strokeStyle = hexToRgba(color, 0.72 * alpha);
-    ctx.fillStyle = hexToRgba(color, 0.12 * alpha);
-    ctx.lineWidth = 2;
-    ctx.shadowColor = hexToRgba(color, 0.35 * alpha);
-    ctx.shadowBlur = 14;
+    ctx.strokeStyle = hexToRgba(color, (isBurst ? 0.95 : 0.72) * alpha);
+    ctx.fillStyle = hexToRgba(color, (isBurst ? 0.28 : 0.12) * alpha);
+    ctx.lineWidth = isBurst ? 3 : 2;
+    ctx.shadowColor = hexToRgba(color, (isBurst ? 0.85 : 0.35) * alpha);
+    ctx.shadowBlur = isBurst ? 28 : 14;
     ctx.beginPath();
     ctx.arc(flash.x, flash.y, radius, 0, Math.PI * 2);
     ctx.fill();
@@ -470,8 +491,8 @@ const triggerWildcardFeedback = (type, point, allowAudio = true) => {
       x: point.x,
       y: point.y + (PEG_R + BALL_R - 1),
       type,
-      age: 18,
-      maxAge: 18,
+      age: type === 'teleportBurst' ? 24 : 18,
+      maxAge: type === 'teleportBurst' ? 24 : 18,
     });
   }
   if (allowAudio) playWildcardSoundIfEnabled(type);
@@ -517,24 +538,24 @@ const getAutoWildcardAddCandidates = (selectedTypes = []) => {
   return candidates.sort(() => Math.random() - 0.5);
 };
 
-const getMaxAutoTeleportersForRow = (rowLength) => {
+const getMaxAutoBumpersForRow = (rowLength) => {
   if (rowLength <= 3) return Math.max(0, rowLength - 1);
   if (rowLength <= 6) return Math.max(0, rowLength - 2);
   return Math.floor(rowLength * 0.7);
 };
 
 const canAutoPlaceWildcardType = (rowIndex, type) => {
-  if (type !== 'teleporter') return true;
+  if (type !== 'bumper') return true;
   if (!currentLayout?.rows[rowIndex]) return false;
   const row = currentLayout.rows[rowIndex];
-  const teleporterCount = row.filter(peg => peg.type === 'teleporter').length;
-  return teleporterCount < getMaxAutoTeleportersForRow(row.length);
+  const bumperCount = row.filter(peg => peg.type === 'bumper').length;
+  return bumperCount < getMaxAutoBumpersForRow(row.length);
 };
 
 const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
   const blockedTypes = [];
-  if (!canAutoPlaceWildcardType(rowIndex, 'teleporter')) {
-    blockedTypes.push('teleporter');
+  if (!canAutoPlaceWildcardType(rowIndex, 'bumper')) {
+    blockedTypes.push('bumper');
   }
 
   const available = selectedWildcards.filter(type => !blockedTypes.includes(type));
@@ -542,7 +563,7 @@ const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
 
   const resolved = resolveWildcardType(available);
   if (blockedTypes.includes(resolved)) {
-    const fallback = ['mirror', 'magnet', 'repeller', 'splitter', 'sticky', 'chaos']
+    const fallback = ['mirror', 'magnet', 'repeller', 'teleport', 'splitter', 'sticky', 'chaos']
       .find(type => available.includes(type) || selectedWildcards.includes('wildcard'));
     return fallback || null;
   }
@@ -608,6 +629,19 @@ const applyWildcardCommand = (type) => {
   drawBoard(currentLayout, currentAnimation?.active || null);
 };
 
+const getRandomPegTarget = (excludeRow = null, excludeCol = null) => {
+  if (!currentLayout) return null;
+  const targets = [];
+  for (let row = 0; row < currentLayout.rows.length; row += 1) {
+    for (let col = 0; col < currentLayout.rows[row].length; col += 1) {
+      if (row !== excludeRow || col !== excludeCol) {
+        targets.push({ row, col, peg: currentLayout.rows[row][col] });
+      }
+    }
+  }
+  return targets[Math.floor(Math.random() * targets.length)] || null;
+};
+
 const buildLayout = (levels) => {
   const width = boardCanvas.width / devicePixelRatio;
   const height = boardCanvas.height / devicePixelRatio;
@@ -648,28 +682,44 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
     path.push({ x: prevPeg.x, y: prevPeg.y - (PEG_R + BALL_R - 1) });
   }
 
-  for (let row = startRow; row < levels; row += 1) {
+  let row = startRow;
+  let arrivedFromJump = false;
+  let jumpCount = 0;
+  let teleportCount = 0;
+
+  while (row < levels) {
     let peg = currentLayout.rows[row][index];
     let decisionIndex = index;
-    const touchY = peg.y - (PEG_R + BALL_R - 1);
+    let touchY = peg.y - (PEG_R + BALL_R - 1);
 
-    let teleportCount = 0;
-    while (peg.type === 'teleporter') {
-      const cameFromTeleport = path[path.length - 1]?.isTeleport;
-      const willDeadlock = teleportCount + 1 >= TELEPORT_DEADLOCK_LIMIT;
+    while (peg.type === 'bumper' || peg.type === 'teleport') {
+      const isBumper = peg.type === 'bumper';
+      const willBumperDeadlock = isBumper && jumpCount + 1 >= TELEPORT_DEADLOCK_LIMIT;
+      const willTeleportVanish = !isBumper && teleportCount + 1 >= TELEPORT_DEADLOCK_LIMIT;
       path.push({
         x: peg.x,
         y: touchY,
         row,
         col: decisionIndex,
-        speedScale: cameFromTeleport ? TELEPORT_SPEED_SCALE : undefined,
-        arc: cameFromTeleport ? 0 : undefined,
-        deadlockFirework: willDeadlock,
-        isTeleport: true,
+        speedScale: arrivedFromJump ? TELEPORT_SPEED_SCALE : undefined,
+        arc: arrivedFromJump ? 0 : undefined,
+        teleportArrival: arrivedFromJump && !isBumper,
+        deadlockFirework: willBumperDeadlock,
+        teleportVanish: willTeleportVanish,
+        isBumper,
+        isTeleport: !isBumper,
       });
 
-      teleportCount += 1;
-      if (teleportCount >= TELEPORT_DEADLOCK_LIMIT) {
+      arrivedFromJump = false;
+      if (isBumper) jumpCount += 1;
+      else teleportCount += 1;
+
+      if (willTeleportVanish) {
+        escapePoint = { disappeared: true };
+        break;
+      }
+
+      if (willBumperDeadlock) {
         const angle = Math.random() * Math.PI * 2;
         const throwDistance = currentLayout.pegSpacing * (levels + 1.5);
         const throwX = peg.x + Math.cos(angle) * throwDistance;
@@ -686,12 +736,22 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
         break;
       }
 
-      decisionIndex = Math.floor(Math.random() * (row + 1));
-      if (row > 0 && decisionIndex === index) {
-        decisionIndex = (decisionIndex + 1 + Math.floor(Math.random() * row)) % (row + 1);
+      if (isBumper) {
+        decisionIndex = Math.floor(Math.random() * (row + 1));
+        if (row > 0 && decisionIndex === index) {
+          decisionIndex = (decisionIndex + 1 + Math.floor(Math.random() * row)) % (row + 1);
+        }
+      } else {
+        const target = getRandomPegTarget(row, decisionIndex);
+        if (!target) break;
+        row = target.row;
+        decisionIndex = target.col;
       }
+
       peg = currentLayout.rows[row][decisionIndex];
       index = decisionIndex;
+      touchY = peg.y - (PEG_R + BALL_R - 1);
+      arrivedFromJump = true;
     }
 
     if (escapePoint) {
@@ -731,14 +791,19 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       y: peg.y - (PEG_R + BALL_R - 1),
       row, 
       col: decisionIndex,
-      speedScale: path[path.length - 1]?.isTeleport ? TELEPORT_SPEED_SCALE : undefined,
-      arc: path[path.length - 1]?.isTeleport ? 0 : undefined,
+      speedScale: arrivedFromJump ? TELEPORT_SPEED_SCALE : undefined,
+      arc: arrivedFromJump ? 0 : undefined,
+      teleportArrival: arrivedFromJump,
       turn: moveRight ? 'right' : 'left' 
     });
+    arrivedFromJump = false;
+    jumpCount = 0;
+    teleportCount = 0;
 
     color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
     index = decisionIndex;
     if (moveRight) index += 1;
+    row += 1;
   }
 
   const finalX = escapePoint ? escapePoint.x : currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
@@ -835,6 +900,23 @@ const drawBoard = (layout, activeBall = null) => {
       ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+
+      if (peg.type === 'teleport') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(224, 242, 254, 0.9)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(peg.x, peg.y, PEG_R + 4, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(peg.x - 4, peg.y + 3);
+        ctx.lineTo(peg.x + 4, peg.y - 3);
+        ctx.moveTo(peg.x - 1, peg.y - 4);
+        ctx.lineTo(peg.x + 4, peg.y - 4);
+        ctx.lineTo(peg.x + 4, peg.y + 1);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
@@ -842,6 +924,7 @@ const drawBoard = (layout, activeBall = null) => {
 
   const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
   for (const ball of activeBalls) {
+    if (ball.hidden) continue;
     const ballColor = getBallColor(ball);
     ctx.beginPath();
     ctx.fillStyle = colorToRgb(ballColor);
@@ -1301,17 +1384,19 @@ const runAnimation = (totalBalls, levels, layout) => {
       const active = activeBalls[i];
       const from = active.path[active.step];
       const to = active.path[active.step + 1];
-      
+
       // Sticky effect: the next hop after contact is slower and less springy.
+      const isInstantTeleportSegment = from?.isTeleport && to?.teleportArrival;
       const speedMult = active.stickyEffect ? active.stickyEffect.speedMult : 1;
-      const framesPerStep = getFramesForSegment(from, to, speedMult);
+      const framesPerStep = isInstantTeleportSegment ? TELEPORT_VANISH_FRAMES : getFramesForSegment(from, to, speedMult);
       
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
+      active.hidden = isInstantTeleportSegment && t < 1;
       const feel = getFeelSettings();
       const motionT = feel.verticalPower === 1 ? t : Math.pow(t, feel.verticalPower);
       const stickyArcScale = active.stickyEffect ? active.stickyEffect.arcScale : 1;
-      const segmentAmplitude = (to.arc ?? active.amplitude) * feel.arcScale * stickyArcScale;
+      const segmentAmplitude = isInstantTeleportSegment ? 0 : (to.arc ?? active.amplitude) * feel.arcScale * stickyArcScale;
       const arc = Math.sin(Math.PI * t) * segmentAmplitude;
       active.x = from.x + (to.x - from.x) * t;
       active.y = from.y + (to.y - from.y) * motionT - arc;
@@ -1319,7 +1404,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       const dx = active.x - lastTrailPoint.x;
       const dy = active.y - lastTrailPoint.y;
       if ((dx * dx) + (dy * dy) >= 16) {
-        active.trail.push({ x: active.x, y: active.y });
+        active.trail.push({ x: active.x, y: active.y, teleportBreak: isInstantTeleportSegment });
       }
 
       const isFinalDrop = to.arc === 0 && active.step >= active.path.length - 2;
@@ -1335,6 +1420,15 @@ const runAnimation = (totalBalls, levels, layout) => {
 
         if (currentPoint?.deadlockFirework) {
           triggerWildcardFeedback('firework', currentPoint, allowAudio);
+        }
+
+        if (currentPoint?.teleportVanish) {
+          active.hidden = true;
+          triggerWildcardFeedback('teleportBurst', currentPoint, allowAudio);
+        }
+
+        if (currentPoint?.teleportArrival) {
+          triggerWildcardFeedback('teleport', currentPoint, false);
         }
 
         if (currentPoint && currentPoint.turn) {
@@ -1391,7 +1485,7 @@ const runAnimation = (totalBalls, levels, layout) => {
           active.trail.push({ x: active.x, y: active.y });
           savePathTrail(active.trail, active.color);
           landedCount += 1;
-          shouldPlayLanding = true;
+          shouldPlayLanding = !currentPoint?.teleportVanish;
           activeBalls.splice(i, 1);
 
           if (launchMode === 'finish' && active.index === nextIndex - 1) startNextBall();
@@ -1550,7 +1644,7 @@ boardCanvas.addEventListener('click', (e) => {
   const mouseX = (e.clientX - rect.left) * (boardCanvas.width / rect.width) / devicePixelRatio;
   const mouseY = (e.clientY - rect.top) * (boardCanvas.height / rect.height) / devicePixelRatio;
 
-  const types = ['normal', 'mirror', 'magnet', 'repeller', 'teleporter', 'splitter', 'sticky', 'chaos'];
+  const types = ['normal', 'mirror', 'magnet', 'repeller', 'bumper', 'teleport', 'splitter', 'sticky', 'chaos'];
   
   for (const row of currentLayout.rows) {
     for (const peg of row) {
