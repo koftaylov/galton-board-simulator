@@ -30,15 +30,6 @@
         </select>
       </label>
       <label>
-        Feel:
-        <select id="feelPreset">
-          <option value="floaty">Floaty</option>
-          <option value="heavy">Heavy</option>
-          <option value="pinball">Pinball</option>
-          <option value="marble" selected>Marble</option>
-        </select>
-      </label>
-      <label>
         Runs:
         <input id="runs" type="number" min="1" max="10000" value="1" />
       </label>
@@ -53,6 +44,15 @@
           <span>Gravity</span>
         </label>
       </fieldset>
+      <label>
+        Feel:
+        <select id="feelPreset">
+          <option value="floaty">Floaty</option>
+          <option value="heavy">Heavy</option>
+          <option value="pinball">Pinball</option>
+          <option value="marble" selected>Marble</option>
+        </select>
+      </label>
       <label class="bias-control">
         Right bias:
         <div class="bias-inputs">
@@ -60,20 +60,33 @@
           <input id="biasValue" type="number" min="0" max="100" value="50" aria-label="Right bias percentage" />
         </div>
       </label>
-      <fieldset class="wildcard-operation-selector" aria-label="Wildcard operation">
-        <legend>Wildcard edit:</legend>
-        <label>
-          <input type="radio" name="wildcardOperation" value="add" checked />
-          <span>+</span>
-        </label>
-        <label>
-          <input type="radio" name="wildcardOperation" value="remove" />
-          <span>-</span>
-        </label>
-        <button id="clearWildcardStates" class="wildcard-off-button" type="button">Off</button>
-      </fieldset>
+      <div class="wildcard-toolbar">
+        <div class="toolbar-label">Wildcards:</div>
+        <fieldset class="wildcard-operation-selector" aria-label="Wildcard operation">
+          <legend class="visually-hidden">Wildcard operation</legend>
+          <button id="clearWildcardStates" class="wildcard-off-button" type="button">Off</button>
+          <label>
+            <input type="radio" name="wildcardOperation" value="add" checked />
+            <span>+</span>
+          </label>
+          <label>
+            <input type="radio" name="wildcardOperation" value="remove" />
+            <span>-</span>
+          </label>
+        </fieldset>
+        <div class="toggle-group wildcard-feedback-toolbar">
+          <label class="toggle-control wildcard-feedback-control">
+            <input id="wildcardAudioToggle" type="checkbox" checked />
+            <span>Sounds</span>
+          </label>
+          <label class="toggle-control wildcard-feedback-control">
+            <input id="wildcardVideoToggle" type="checkbox" checked />
+            <span>Effects</span>
+          </label>
+        </div>
+      </div>
       <fieldset class="wildcard-selector" aria-label="Wildcard obstacles">
-        <legend>Wildcards:</legend>
+        <legend>Types:</legend>
         <label class="wildcard-mirror">
           <input type="checkbox" name="wildcardType" value="mirror" />
           <span>Mirror</span>
@@ -111,18 +124,8 @@
           <span>Wildcard</span>
         </label>
       </fieldset>
-      <div class="toggle-group">
-        <label class="toggle-control wildcard-feedback-control">
-          <input id="wildcardAudioToggle" type="checkbox" checked />
-          <span>Wildcard audio</span>
-        </label>
-        <label class="toggle-control wildcard-feedback-control">
-          <input id="wildcardVideoToggle" type="checkbox" checked />
-          <span>Wildcard video</span>
-        </label>
-      </div>
       <fieldset class="mode-selector" aria-label="Launch mode">
-        <legend>Mode:</legend>
+        <legend>Launching mode:</legend>
         <label>
           <input type="radio" name="launchMode" value="finish" checked />
           <span>One</span>
@@ -174,7 +177,7 @@
         </label>
       </fieldset>
       <fieldset class="histogram-selector" aria-label="Histogram display">
-        <legend>Show:</legend>
+        <legend>Histogram:</legend>
         <label>
           <input type="radio" name="histogramMode" value="off" />
           <span>Off</span>
@@ -198,7 +201,8 @@
           <span>Color turns</span>
         </label>
       </div>
-      <div class="toggle-group">
+      <fieldset class="stats-toggle-selector">
+        <legend>Stats:</legend>
         <label class="toggle-control ghost-control">
           <input id="ghostToggle" type="checkbox" />
           <span>Ghost overlay</span>
@@ -211,11 +215,11 @@
           <input id="lineStatsToggle" type="checkbox" />
           <span>Line stats</span>
         </label>
-      </div>
+      </fieldset>
       <div class="toggle-group">
         <label class="toggle-control background-control">
           <input id="backgroundToggle" type="checkbox" />
-          <span>Background</span>
+          <span>Simulate in background</span>
         </label>
       </div>
       <fieldset class="current-label-selector" aria-label="Current run labels">
@@ -234,7 +238,7 @@
         </label>
       </fieldset>
       <fieldset class="label-stat-selector" aria-label="Label summary">
-        <legend>Label stats:</legend>
+        <legend>Stats labels:</legend>
         <label>
           <input type="checkbox" name="labelStatMode" value="off" checked />
           <span>Off</span>
@@ -302,7 +306,7 @@
             <li><strong>Speed</strong>: changes animation pacing.</li>
             <li><strong>Simple</strong>: steady segment timing.</li>
             <li><strong>Gravity</strong>: uses the Feel preset for heavier or bouncier movement.</li>
-            <li><strong>Background</strong>: keeps simulation time catching up when the tab is not focused.</li>
+            <li><strong>Simulate in background</strong>: keeps simulation time catching up when the tab is not focused.</li>
           </ul>
         </section>
         <section>
@@ -318,13 +322,17 @@
         <section>
           <h3>Wildcards</h3>
           <ul>
-            <li><strong>+</strong> adds random wildcards. <strong>-</strong> removes matching wildcards. <strong>Off</strong> clears peg states.</li>
+            <li><strong>+</strong> adds wildcards after click on its type. <strong>-</strong> removes matching wildcards. <strong>Off</strong> clears all peg states.</li>
+            <li>Click on <strong>Types</strong> modifies state of some random pegs.</li>
             <li><strong>Mirror</strong> reverses the chosen direction.</li>
-            <li><strong>Magnet</strong> pulls toward the center. <strong>Repeller</strong> pushes away from center.</li>
+            <li><strong>Magnet</strong> pulls toward the center.</li>
+            <li><strong>Repeller</strong> pushes away from center.</li>
             <li><strong>Bumper</strong> jumps across the same row. Auto placement always leaves some non-Bumper pegs in each row.</li>
             <li><strong>Teleport</strong> disappears and reappears at any peg. After 10 chained Teleports, the ball vanishes with a bright flash.</li>
-            <li><strong>Splitter</strong> creates an extra ball. <strong>Sticky</strong> makes the next bounce weaker. <strong>Chaos</strong> ignores bias.</li>
-            <li><strong>Wildcard</strong> randomly chooses one of the wildcard types.</li>
+            <li><strong>Splitter</strong> creates an extra ball.</li>
+            <li><strong>Sticky</strong> makes the next bounce weaker.</li>
+            <li><strong>Chaos</strong> ignores bias.</li>
+            <li><strong>Random</strong> adds random state.</li>
           </ul>
         </section>
         <section>
@@ -334,7 +342,7 @@
             <li><strong>Color turns</strong> colors balls by left/right turns.</li>
             <li><strong>Ghost overlay</strong> shows the expected binomial curve.</li>
             <li><strong>Bar stats, Line stats, Label stats</strong> compare saved runs.</li>
-            <li><strong>Sound</strong> controls bounce/turn audio. <strong>Wildcard audio/video</strong> control wildcard feedback.</li>
+            <li><strong>Sound</strong> controls bounce/turn audio. <strong>Sounds</strong> and <strong>Effects</strong> control wildcard feedback.</li>
           </ul>
         </section>
         <section>

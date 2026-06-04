@@ -91,6 +91,18 @@ body {
   overflow: hidden;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .help-header {
   display: flex;
   align-items: center;
@@ -203,8 +215,8 @@ body {
 .mode-selector,
 .sound-selector,
 .histogram-selector,
-.physics-selector,
 .wildcard-operation-selector,
+.stats-toggle-selector,
 .current-label-selector,
 .label-stat-selector {
   display: flex;
@@ -219,8 +231,8 @@ body {
 .mode-selector legend,
 .sound-selector legend,
 .histogram-selector legend,
-.physics-selector legend,
 .wildcard-operation-selector legend,
+.stats-toggle-selector legend,
 .current-label-selector legend,
 .label-stat-selector legend {
   width: 100%;
@@ -232,8 +244,8 @@ body {
 .mode-selector label,
 .sound-selector label,
 .histogram-selector label,
-.physics-selector label,
 .wildcard-operation-selector label,
+.stats-toggle-selector label,
 .current-label-selector label,
 .label-stat-selector label {
   min-width: 0;
@@ -242,8 +254,8 @@ body {
 .mode-selector input,
 .sound-selector input,
 .histogram-selector input,
-.physics-selector input,
 .wildcard-operation-selector input,
+.stats-toggle-selector input,
 .current-label-selector input,
 .label-stat-selector input {
   position: fixed;
@@ -256,8 +268,8 @@ body {
 .mode-selector span,
 .sound-selector span,
 .histogram-selector span,
-.physics-selector span,
 .wildcard-operation-selector span,
+.stats-toggle-selector span,
 .current-label-selector span,
 .label-stat-selector span {
   display: flex;
@@ -275,19 +287,55 @@ body {
   white-space: nowrap;
 }
 
+.wildcard-toolbar {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 8px;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.toolbar-label {
+  grid-column: 1 / -1;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wildcard-toolbar .wildcard-operation-selector {
+  grid-column: auto;
+}
+
+.wildcard-toolbar .wildcard-feedback-toolbar {
+  flex: 1;
+  grid-column: auto;
+}
+
+.wildcard-feedback-toolbar .toggle-control span {
+  height: 40px;
+}
+
+.wildcard-feedback-toolbar .toggle-control {
+  flex: 1;
+}
+
 .wildcard-operation-selector .wildcard-off-button {
   flex: 1;
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid #334155;
-  border-radius: 0 8px 8px 0;
+  border-radius: 8px 0 0 8px;
   background: #0f172a;
   color: #cbd5e1;
   font-size: 14px;
 }
 
-.wildcard-operation-selector label:last-of-type span {
+.wildcard-operation-selector label:first-of-type span {
   border-radius: 0;
+}
+
+.wildcard-operation-selector label:last-of-type span {
+  border-radius: 0 8px 8px 0;
 }
 
 .wildcard-operation-selector .wildcard-off-button:hover {
@@ -298,8 +346,6 @@ body {
 .mode-selector label:first-of-type span,
 .sound-selector label:first-of-type span,
 .histogram-selector label:first-of-type span,
-.physics-selector label:first-of-type span,
-.wildcard-operation-selector label:first-of-type span,
 .current-label-selector label:first-of-type span,
 .label-stat-selector label:first-of-type span {
   border-radius: 8px 0 0 8px;
@@ -308,8 +354,6 @@ body {
 .mode-selector label:last-of-type span,
 .sound-selector label:last-of-type span,
 .histogram-selector label:last-of-type span,
-.physics-selector label:last-of-type span,
-.wildcard-operation-selector label:last-of-type span,
 .current-label-selector label:last-of-type span,
 .label-stat-selector label:last-of-type span {
   border-radius: 0 8px 8px 0;
@@ -318,8 +362,8 @@ body {
 .mode-selector input:checked + span,
 .sound-selector input:checked + span,
 .histogram-selector input:checked + span,
-.physics-selector input:checked + span,
 .wildcard-operation-selector input:checked + span,
+.stats-toggle-selector input:checked + span,
 .current-label-selector input:checked + span,
 .label-stat-selector input:checked + span {
   border-color: #38bdf8;
@@ -330,8 +374,8 @@ body {
 .mode-selector input:focus-visible + span,
 .sound-selector input:focus-visible + span,
 .histogram-selector input:focus-visible + span,
-.physics-selector input:focus-visible + span,
 .wildcard-operation-selector input:focus-visible + span,
+.stats-toggle-selector input:focus-visible + span,
 .current-label-selector input:focus-visible + span,
 .label-stat-selector input:focus-visible + span {
   outline: 2px solid #7dd3fc;
@@ -340,11 +384,86 @@ body {
 
 .sound-selector span,
 .histogram-selector span,
-.physics-selector span,
 .wildcard-operation-selector span,
+.stats-toggle-selector span,
 .current-label-selector span,
 .label-stat-selector span {
   padding: 0 10px;
+}
+
+.physics-selector {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.physics-selector legend {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.physics-selector label {
+  flex: 1;
+  min-width: 0;
+}
+
+.physics-selector input {
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.physics-selector span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.physics-selector label:first-of-type span {
+  border-radius: 8px 0 0 8px;
+}
+
+.physics-selector label:last-of-type span {
+  border-radius: 0 8px 8px 0;
+}
+
+.physics-selector input:checked + span {
+  border-color: #38bdf8;
+  background: #075985;
+  color: #f8fafc;
+}
+
+.physics-selector input:focus-visible + span {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
+.histogram-selector label,
+.stats-toggle-selector label {
+  flex: 1;
+}
+
+.histogram-selector span,
+.stats-toggle-selector span {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 input[type="number"],
@@ -721,10 +840,21 @@ button:hover {
   .histogram-selector,
   .physics-selector,
   .wildcard-operation-selector,
+  .stats-toggle-selector,
   .current-label-selector,
   .label-stat-selector {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .wildcard-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .wildcard-toolbar .wildcard-feedback-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .mode-selector label:first-of-type span,
@@ -737,6 +867,8 @@ button:hover {
   .physics-selector label:last-of-type span,
   .wildcard-operation-selector label:first-of-type span,
   .wildcard-operation-selector label:last-of-type span,
+  .stats-toggle-selector label:first-of-type span,
+  .stats-toggle-selector label:last-of-type span,
   .current-label-selector label:first-of-type span,
   .current-label-selector label:last-of-type span,
   .label-stat-selector label:first-of-type span,
@@ -749,8 +881,13 @@ button:hover {
   .histogram-selector span,
   .physics-selector span,
   .wildcard-operation-selector span,
+  .stats-toggle-selector span,
   .current-label-selector span,
   .label-stat-selector span {
+    border-radius: 8px;
+  }
+
+  .wildcard-operation-selector .wildcard-off-button {
     border-radius: 8px;
   }
 }
