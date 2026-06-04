@@ -1148,7 +1148,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       y: result.path[0].y,
       amplitude: 18,
       spawnedNext: false,
-      stickySteps: 0,
+      stickyEffect: null,
       trail: [{ x: result.path[0].x, y: result.path[0].y }],
     };
   };
@@ -1302,15 +1302,16 @@ const runAnimation = (totalBalls, levels, layout) => {
       const from = active.path[active.step];
       const to = active.path[active.step + 1];
       
-      // Sticky effect: slow down if the ball is currently stuck
-      const speedMult = active.stickySteps > 0 ? 2.5 : 1;
+      // Sticky effect: the next hop after contact is slower and less springy.
+      const speedMult = active.stickyEffect ? active.stickyEffect.speedMult : 1;
       const framesPerStep = getFramesForSegment(from, to, speedMult);
       
       active.progress += 1 / framesPerStep;
       const t = Math.min(active.progress, 1);
       const feel = getFeelSettings();
       const motionT = feel.verticalPower === 1 ? t : Math.pow(t, feel.verticalPower);
-      const segmentAmplitude = (to.arc ?? active.amplitude) * feel.arcScale;
+      const stickyArcScale = active.stickyEffect ? active.stickyEffect.arcScale : 1;
+      const segmentAmplitude = (to.arc ?? active.amplitude) * feel.arcScale * stickyArcScale;
       const arc = Math.sin(Math.PI * t) * segmentAmplitude;
       active.x = from.x + (to.x - from.x) * t;
       active.y = from.y + (to.y - from.y) * motionT - arc;
@@ -1328,8 +1329,7 @@ const runAnimation = (totalBalls, levels, layout) => {
         active.step += 1;
         active.progress = 0;
         
-        // Decrement sticky steps
-        if (active.stickySteps > 0) active.stickySteps -= 1;
+        active.stickyEffect = null;
 
         const currentPoint = active.path[active.step];
 
@@ -1356,7 +1356,7 @@ const runAnimation = (totalBalls, levels, layout) => {
 
           if (isEffectEnabled && rowIdx < levels - 1) {
             if (peg.type === 'sticky') {
-              active.stickySteps = 2; // slow for next 2 rows
+              active.stickyEffect = { speedMult: 1.1, arcScale: 0.45 };
             } else if (peg.type === 'splitter') {
               const sibling = makeActiveBall(
                 -1, // -1 ensures siblings don't hijack the main launch sequence index
