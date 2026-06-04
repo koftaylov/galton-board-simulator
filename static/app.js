@@ -507,6 +507,7 @@ const applyRandomWildcards = () => {
         if (!peg.manual) peg.type = 'normal';
       }
     }
+    refreshActiveBallPaths();
     return;
   }
 
@@ -518,6 +519,7 @@ const applyRandomWildcards = () => {
     const type = resolveAutoWildcardTypeForPeg(selectedWildcards, rowIndex);
     if (type) peg.type = type;
   }
+  refreshActiveBallPaths();
 };
 
 const getAutoWildcardAddCandidates = (selectedTypes = []) => {
@@ -600,6 +602,7 @@ const clearAllPegStates = () => {
     }
   }
   resetWildcardButtons();
+  refreshActiveBallPaths();
   drawBoard(currentLayout, currentAnimation?.active || null);
 };
 
@@ -626,6 +629,7 @@ const applyWildcardCommand = (type) => {
   }
 
   resetWildcardButtons();
+  refreshActiveBallPaths();
   drawBoard(currentLayout, currentAnimation?.active || null);
 };
 
@@ -814,6 +818,34 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   }
 
   return { path, bin: escapePoint ? null : index, color, escaped: !!escapePoint };
+};
+
+const refreshActiveBallPaths = () => {
+  const activeBalls = currentAnimation?.active;
+  if (!currentLayout || !Array.isArray(activeBalls) || activeBalls.length === 0) return;
+  const levels = currentLayout.rows.length;
+
+  for (const active of activeBalls) {
+    const nextContact = active.path
+      .slice(active.step + 1)
+      .find(point => point.row !== undefined && point.col !== undefined);
+
+    if (!nextContact || nextContact.row >= levels) continue;
+
+    const startRow = nextContact.row;
+    const startIndex = clamp(nextContact.col, 0, startRow);
+    const result = simulateBallPath(levels, getRightBias(), startRow, startIndex, active.color);
+    active.path = [
+      { x: active.x, y: active.y },
+      ...result.path.slice(1),
+    ];
+    active.bin = result.bin;
+    active.color = result.color;
+    active.step = 0;
+    active.progress = 0;
+    active.hidden = false;
+    active.stickyEffect = null;
+  }
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -1658,6 +1690,7 @@ boardCanvas.addEventListener('click', (e) => {
         peg.type = types[nextIdx];
         peg.manual = true; // Protect from random sprinkling
         
+        refreshActiveBallPaths();
         drawBoard(currentLayout, currentAnimation?.active || null);
         return;
       }
@@ -1697,6 +1730,7 @@ const clearBoardPegs = () => {
   historicalStats = []; // Clear history on board clear
   // Uncheck all toggles to reset the 'brush'
   wildcardTypeInputs.forEach(input => input.checked = false);
+  refreshActiveBallPaths();
   drawBoard(currentLayout, currentAnimation?.active || null);
 };
 
