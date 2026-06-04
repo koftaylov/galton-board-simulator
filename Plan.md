@@ -17,6 +17,8 @@
 - [ ] For Stats bars and lines drow last one with red colour for a few seconds or until new stats appears, then make it white. So I have series of white overlaying lines and visible last one over it.
 - [ ] Deviation mode: color bars based on whether each bucket is above or below its expected count. with new toggle Deviation next to Column turns. should be 3 colours: less, above and within 1pp range
 - [ ] add text file (json, yaml, ini, any suitable format for manual editing) with all initial settings, reads it and loads with page loading. I want to be able to edit setting like speed, colours, default state of setting and toggles.
+- [ ] Highlight anomalies: like bucket got twice as more % than expected, or ball make 10 left turns in a row with 50/50 bias. suggest list of anomalies and how to show them
+
 
 ## Publishing Plan
 
@@ -63,8 +65,8 @@ Answer on free account:
 
 ### gamification
 - [ ] Design game mode with several game options. Whould it be new toggles? suggest options and ui.
-- [ ] Game: Target challenge: pick a target bucket and adjust bias or wildcard pegs to maximize hits there. Goal 1pp difference in 3 runs in a row.
-- [ ] Game: Repeat pattern: Select a pattern from preset, or random rappern and try to repeat it adjusting bias or wildcard pegs. Goal - 1pp difference in 3 runs in a row.
+- [ ] Game: Target challenge: pick a target bucket and adjust bias or wildcard pegs to maximize hits there. Goal 1pp difference in 3 runs in a row (gold - 1pp, silver 2.5 pp, bronze 5pp).
+- [ ] Game: Repeat pattern: Select a pattern from preset, or random rappern and try to repeat it adjusting bias or wildcard pegs. Goal - 1pp difference in 3 runs in a row (gold - 1pp, silver 2.5 pp, bronze 5pp).
 - [ ] Game: Longest path: bit yuorself trying to reach longest path of ball from top to bottom. Show table with top 5 paths and when select a path in table hightlight path on pegs.
 
 ### nice to have
