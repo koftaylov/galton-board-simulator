@@ -66,6 +66,7 @@ let rafId = null;
 let timeoutIds = [];
 let savedTrails = [];
 let historicalStats = [];
+let latestStatsHighlight = { index: -1, until: 0 };
 let wildcardFlashes = [];
 let isPathSavingEnabled = false;
 let runsRemaining = 0;
@@ -86,6 +87,7 @@ const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_
 const TELEPORT_DEADLOCK_LIMIT = 10;
 const TELEPORT_SPEED_SCALE = 2;
 const TELEPORT_VANISH_FRAMES = 7;
+const STATS_HIGHLIGHT_MS = 3500;
 
 const WILDCARD_COLORS = {
   mirror: '#06b6d4',      // cyan-400
@@ -125,6 +127,20 @@ const getSelectedLabelStatModes = () => labelStatModeInputs
   .filter(input => input.checked && input.value !== 'off')
   .map(input => input.value);
 const isStatsHistoryEnabled = () => !!saveStatsToggle?.checked || !!lineStatsToggle?.checked || getSelectedLabelStatModes().length > 0;
+const clearStatsHighlight = () => {
+  latestStatsHighlight = { index: -1, until: 0 };
+};
+const markLatestStatsHighlight = () => {
+  latestStatsHighlight = {
+    index: historicalStats.length - 1,
+    until: Date.now() + STATS_HIGHLIGHT_MS,
+  };
+  const timeoutId = setTimeout(() => {
+    timeoutIds = timeoutIds.filter(id => id !== timeoutId);
+    if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
+  }, STATS_HIGHLIGHT_MS);
+  timeoutIds.push(timeoutId);
+};
 const getSelectedWildcardTypes = () => wildcardTypeInputs
   .filter(input => input.checked)
   .map(input => input.value);
@@ -1015,11 +1031,14 @@ const drawBinsOnCanvas = (layout, bins) => {
       const histBins = historicalStats[hIdx];
       if (!histBins || histBins.length !== binCount) continue; // Skip mismatched levels
       
-      const strokeColor = `rgba(255, 255, 255, ${0.15 + (0.1 * (hIdx % 3))})`;
+      const isLatestHighlighted = hIdx === latestStatsHighlight.index && Date.now() < latestStatsHighlight.until;
+      const strokeColor = isLatestHighlighted
+        ? 'rgba(248, 113, 113, 0.9)'
+        : `rgba(255, 255, 255, ${0.15 + (0.1 * (hIdx % 3))})`;
       ctx.strokeStyle = strokeColor;
 
       if (saveStatsToggle?.checked) {
-        ctx.lineWidth = 1;
+        ctx.lineWidth = isLatestHighlighted ? 2 : 1;
         for (let i = 0; i < binCount; i++) {
           const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
           const w = Math.floor(layout.pegSpacing * 0.8); // slightly wider for outline
@@ -1033,7 +1052,7 @@ const drawBinsOnCanvas = (layout, bins) => {
       }
 
       if (lineStatsToggle?.checked) {
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isLatestHighlighted ? 3 : 2;
         ctx.beginPath();
         for (let i = 0; i < binCount; i++) {
           const xCenter = layout.center + (i - (binCount - 1) / 2) * layout.pegSpacing;
@@ -1303,6 +1322,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     // Save current bins to history if either toggle is on
     if (isStatsHistoryEnabled()) {
       historicalStats.push([...currentBins]);
+      markLatestStatsHighlight();
     }
 
     // Redraw one last time to clear active balls but keep bins
@@ -1750,6 +1770,7 @@ const clearBoardPegs = () => {
     }
   }
   historicalStats = []; // Clear history on board clear
+  clearStatsHighlight();
   // Uncheck all toggles to reset the 'brush'
   wildcardTypeInputs.forEach(input => input.checked = false);
   refreshActiveBallPaths();
@@ -1808,12 +1829,14 @@ ghostToggle.addEventListener('change', () => {
 saveStatsToggle.addEventListener('change', () => {
   if (!isStatsHistoryEnabled()) {
     historicalStats = [];
+    clearStatsHighlight();
   }
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
 lineStatsToggle.addEventListener('change', () => {
   if (!isStatsHistoryEnabled()) {
     historicalStats = [];
+    clearStatsHighlight();
   }
   if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
 });
@@ -1836,6 +1859,7 @@ labelStatModeInputs.forEach(input => {
 
     if (!isStatsHistoryEnabled()) {
       historicalStats = [];
+      clearStatsHighlight();
     }
     if (currentLayout) drawBoard(currentLayout, currentAnimation?.active || null);
   });
