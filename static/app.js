@@ -549,7 +549,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       y: peg.y - (PEG_R + BALL_R - 1),
       row, 
       col: decisionIndex,
-      speedScale: path[path.length - 1]?.isTeleport ? 5 : undefined,
+      speedScale: path[path.length - 1]?.isTeleport ? 2 : undefined,
       arc: path[path.length - 1]?.isTeleport ? 0 : undefined,
       turn: moveRight ? 'right' : 'left' 
     });
