@@ -79,9 +79,9 @@ const START_COLOR = { r: 56, g: 189, b: 248 };
 const LEFT_TURN_COLOR = { r: 249, g: 115, b: 22 };
 const RIGHT_TURN_COLOR = { r: 168, g: 85, b: 247 };
 const HISTOGRAM_RESERVED_HEIGHT = 144;
-const BASE_CANVAS_HEIGHT = 568;
+const BASE_CANVAS_HEIGHT = 608;
 const BASE_LEVELS = 12;
-const BASE_TOP = 48;
+const BASE_TOP = 88;
 const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
 const TELEPORT_DEADLOCK_LIMIT = 10;
 const TELEPORT_SPEED_SCALE = 2;
@@ -652,7 +652,7 @@ const getRandomPegTarget = (excludeRow = null, excludeCol = null) => {
 const buildLayout = (levels) => {
   const width = boardCanvas.width / devicePixelRatio;
   const height = boardCanvas.height / devicePixelRatio;
-  const top = 48;
+  const top = BASE_TOP;
   const bottom = height - HISTOGRAM_RESERVED_HEIGHT;
   const rowSpacing = (bottom - top) / (levels + 1);
   const pegSpacing = Math.min(54, width / (levels + 4));
