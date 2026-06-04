@@ -22,6 +22,8 @@ const backgroundToggle = document.getElementById('backgroundToggle');
 const wildcardTypeInputs = Array.from(document.querySelectorAll('input[name="wildcardType"]'));
 const wildcardOperationInputs = Array.from(document.querySelectorAll('input[name="wildcardOperation"]'));
 const clearWildcardStatesButton = document.getElementById('clearWildcardStates');
+const wildcardAudioToggle = document.getElementById('wildcardAudioToggle');
+const wildcardVideoToggle = document.getElementById('wildcardVideoToggle');
 const labelStatModeInputs = Array.from(document.querySelectorAll('input[name="labelStatMode"]'));
 const currentLabelModeInputs = Array.from(document.querySelectorAll('input[name="currentLabelMode"]'));
 
@@ -61,6 +63,7 @@ let rafId = null;
 let timeoutIds = [];
 let savedTrails = [];
 let historicalStats = [];
+let wildcardFlashes = [];
 let isPathSavingEnabled = false;
 let runsRemaining = 0;
 let totalRuns = 1;
@@ -77,6 +80,8 @@ const BASE_CANVAS_HEIGHT = 568;
 const BASE_LEVELS = 12;
 const BASE_TOP = 48;
 const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_TOP) / (BASE_LEVELS + 1);
+const TELEPORT_DEADLOCK_LIMIT = 10;
+const TELEPORT_SPEED_SCALE = 2;
 
 const WILDCARD_COLORS = {
   mirror: '#06b6d4',      // cyan-400
@@ -87,6 +92,7 @@ const WILDCARD_COLORS = {
   sticky: '#f59e0b',      // amber-500
   chaos: '#ec4899',       // pink-500
   wildcard: '#ffffff',    // white
+  firework: '#facc15',     // yellow-400
 };
 
 const FEEL_PRESETS = {
@@ -231,7 +237,54 @@ const createClickPlayer = () => {
     osc.stop(now + 0.1);
   };
 
-  return { play, playTurn, playLevel };
+  const playTone = (freq, type, delay, duration, volume, targetFreq = null) => {
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    const start = ac.currentTime + delay;
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    if (targetFreq) {
+      osc.frequency.linearRampToValueAtTime(targetFreq, start + duration);
+    }
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), start + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(g);
+    g.connect(ac.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  };
+
+  const playWildcard = (type) => {
+    if (type === 'mirror') {
+      playTone(760, 'sine', 0, 0.075, 0.028, 520);
+      playTone(520, 'sine', 0.04, 0.075, 0.024, 760);
+    } else if (type === 'magnet') {
+      playTone(210, 'sawtooth', 0, 0.13, 0.026, 120);
+    } else if (type === 'repeller') {
+      playTone(180, 'square', 0, 0.09, 0.022, 620);
+    } else if (type === 'teleporter') {
+      playTone(980, 'triangle', 0, 0.045, 0.026);
+      playTone(1420, 'triangle', 0.055, 0.055, 0.024);
+    } else if (type === 'splitter') {
+      playTone(430, 'triangle', 0, 0.09, 0.022, 620);
+      playTone(430, 'triangle', 0, 0.09, 0.022, 280);
+    } else if (type === 'sticky') {
+      playTone(150, 'sine', 0, 0.16, 0.028, 95);
+    } else if (type === 'chaos') {
+      playTone(300 + Math.random() * 500, 'square', 0, 0.045, 0.018);
+      playTone(300 + Math.random() * 500, 'sawtooth', 0.04, 0.045, 0.016);
+      playTone(300 + Math.random() * 500, 'triangle', 0.08, 0.045, 0.016);
+    } else if (type === 'firework') {
+      playTone(1320, 'square', 0, 0.035, 0.034, 360);
+      playTone(180, 'sawtooth', 0, 0.055, 0.026, 90);
+      playTone(720, 'triangle', 0.028, 0.045, 0.018, 1120);
+    } else {
+      playTone(620, 'sine', 0, 0.08, 0.02);
+    }
+  };
+
+  return { play, playTurn, playLevel, playWildcard };
 };
 
 const resizeCanvas = () => {
@@ -256,6 +309,12 @@ const blendColors = (base, next, amount) => ({
 });
 const colorToRgb = (color) => `rgb(${color.r}, ${color.g}, ${color.b})`;
 const colorToRgba = (color, alpha) => `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+const hexToRgba = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 const getBallColor = (ball) => turnColorToggle?.checked ? ball.color : START_COLOR;
 const getTrailColor = (ball) => turnColorToggle?.checked ? ball.color : { r: 74, g: 222, b: 128 };
 const getHistogramArea = (layout) => {
@@ -357,10 +416,65 @@ const drawSoftTrail = (targetCtx, trail, opacity = 1, color = { r: 74, g: 222, b
   targetCtx.restore();
 };
 
+const drawWildcardFlashes = () => {
+  for (let i = wildcardFlashes.length - 1; i >= 0; i -= 1) {
+    const flash = wildcardFlashes[i];
+    const progress = 1 - (flash.age / flash.maxAge);
+    const color = WILDCARD_COLORS[flash.type] || '#ffffff';
+    const radius = PEG_R + 8 + (progress * 24);
+    const alpha = Math.max(0, flash.age / flash.maxAge);
+
+    ctx.save();
+    ctx.strokeStyle = hexToRgba(color, 0.72 * alpha);
+    ctx.fillStyle = hexToRgba(color, 0.12 * alpha);
+    ctx.lineWidth = 2;
+    ctx.shadowColor = hexToRgba(color, 0.35 * alpha);
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(flash.x, flash.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    flash.age -= 1;
+    if (flash.age <= 0) {
+      wildcardFlashes.splice(i, 1);
+    }
+  }
+};
+
+const clearWildcardFlashes = () => {
+  wildcardFlashes = [];
+};
+
 const savePathTrail = (path, color) => {
   if (!isPathSavingEnabled || !path || path.length < 2) return;
   savedTrails.push({ trail: path.map(point => ({ ...point })), color });
   repaintSavedPaths();
+};
+
+const playWildcardSoundIfEnabled = (type) => {
+  if (!wildcardAudioToggle?.checked) return;
+  try {
+    if (!window._clickPlayer) window._clickPlayer = createClickPlayer();
+    window._clickPlayer.playWildcard(type);
+  } catch (e) {
+    // ignore
+  }
+};
+
+const triggerWildcardFeedback = (type, point, allowAudio = true) => {
+  if (!type || type === 'normal' || !point) return;
+  if (wildcardVideoToggle?.checked) {
+    wildcardFlashes.push({
+      x: point.x,
+      y: point.y + (PEG_R + BALL_R - 1),
+      type,
+      age: 18,
+      maxAge: 18,
+    });
+  }
+  if (allowAudio) playWildcardSoundIfEnabled(type);
 };
 
 const applyRandomWildcards = () => {
@@ -379,7 +493,9 @@ const applyRandomWildcards = () => {
   const selectedPegs = candidates.slice(0, getWildcardBatchSize());
 
   for (const peg of selectedPegs) {
-    peg.type = resolveWildcardType(selectedWildcards);
+    const rowIndex = currentLayout.rows.findIndex(row => row.includes(peg));
+    const type = resolveAutoWildcardTypeForPeg(selectedWildcards, rowIndex);
+    if (type) peg.type = type;
   }
 };
 
@@ -392,13 +508,45 @@ const getAutoWildcardAddCandidates = (selectedTypes = []) => {
     if (skipsLastRow && rowIndex === currentLayout.rows.length - 1) continue;
     const row = currentLayout.rows[rowIndex];
     for (const peg of row) {
-      if (!peg.manual && peg.type === 'normal') {
+      if (!peg.manual && peg.type === 'normal' && canAutoPlaceWildcardType(rowIndex, selectedTypes[0])) {
         candidates.push(peg);
       }
     }
   }
 
   return candidates.sort(() => Math.random() - 0.5);
+};
+
+const getMaxAutoTeleportersForRow = (rowLength) => {
+  if (rowLength <= 3) return Math.max(0, rowLength - 1);
+  if (rowLength <= 6) return Math.max(0, rowLength - 2);
+  return Math.floor(rowLength * 0.7);
+};
+
+const canAutoPlaceWildcardType = (rowIndex, type) => {
+  if (type !== 'teleporter') return true;
+  if (!currentLayout?.rows[rowIndex]) return false;
+  const row = currentLayout.rows[rowIndex];
+  const teleporterCount = row.filter(peg => peg.type === 'teleporter').length;
+  return teleporterCount < getMaxAutoTeleportersForRow(row.length);
+};
+
+const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
+  const blockedTypes = [];
+  if (!canAutoPlaceWildcardType(rowIndex, 'teleporter')) {
+    blockedTypes.push('teleporter');
+  }
+
+  const available = selectedWildcards.filter(type => !blockedTypes.includes(type));
+  if (available.length === 0) return null;
+
+  const resolved = resolveWildcardType(available);
+  if (blockedTypes.includes(resolved)) {
+    const fallback = ['mirror', 'magnet', 'repeller', 'splitter', 'sticky', 'chaos']
+      .find(type => available.includes(type) || selectedWildcards.includes('wildcard'));
+    return fallback || null;
+  }
+  return resolved;
 };
 
 const getWildcardRemoveCandidates = (type) => {
@@ -447,8 +595,12 @@ const applyWildcardCommand = (type) => {
       peg.type = 'normal';
       peg.manual = false;
     } else {
-      peg.type = resolveWildcardType([type]);
-      peg.manual = false;
+      const rowIndex = currentLayout.rows.findIndex(row => row.includes(peg));
+      const resolvedType = resolveAutoWildcardTypeForPeg([type], rowIndex);
+      if (resolvedType) {
+        peg.type = resolvedType;
+        peg.manual = false;
+      }
     }
   }
 
@@ -485,6 +637,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   let index = startIndex;
   let color = startColor ? { ...startColor } : { ...START_COLOR };
   const path = [];
+  let escapePoint = null;
 
   // Start point (no row/col metadata)
   if (startRow === 0) {
@@ -500,20 +653,49 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
     let decisionIndex = index;
     const touchY = peg.y - (PEG_R + BALL_R - 1);
 
-    if (peg.type === 'teleporter') {
+    let teleportCount = 0;
+    while (peg.type === 'teleporter') {
+      const cameFromTeleport = path[path.length - 1]?.isTeleport;
+      const willDeadlock = teleportCount + 1 >= TELEPORT_DEADLOCK_LIMIT;
       path.push({
         x: peg.x,
         y: touchY,
         row,
         col: decisionIndex,
+        speedScale: cameFromTeleport ? TELEPORT_SPEED_SCALE : undefined,
+        arc: cameFromTeleport ? 0 : undefined,
+        deadlockFirework: willDeadlock,
         isTeleport: true,
       });
+
+      teleportCount += 1;
+      if (teleportCount >= TELEPORT_DEADLOCK_LIMIT) {
+        const angle = Math.random() * Math.PI * 2;
+        const throwDistance = currentLayout.pegSpacing * (levels + 1.5);
+        const throwX = peg.x + Math.cos(angle) * throwDistance;
+        const throwY = peg.y + Math.sin(angle) * throwDistance;
+        path.push({
+          x: throwX,
+          y: throwY,
+          row,
+          col: decisionIndex,
+          arc: currentLayout.rowSpacing * 0.9,
+          speedScale: 6,
+        });
+        escapePoint = { x: throwX, y: throwY };
+        break;
+      }
 
       decisionIndex = Math.floor(Math.random() * (row + 1));
       if (row > 0 && decisionIndex === index) {
         decisionIndex = (decisionIndex + 1 + Math.floor(Math.random() * row)) % (row + 1);
       }
       peg = currentLayout.rows[row][decisionIndex];
+      index = decisionIndex;
+    }
+
+    if (escapePoint) {
+      break;
     }
     
     let moveRight = Math.random() < rightBias;
@@ -549,7 +731,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       y: peg.y - (PEG_R + BALL_R - 1),
       row, 
       col: decisionIndex,
-      speedScale: path[path.length - 1]?.isTeleport ? 2 : undefined,
+      speedScale: path[path.length - 1]?.isTeleport ? TELEPORT_SPEED_SCALE : undefined,
       arc: path[path.length - 1]?.isTeleport ? 0 : undefined,
       turn: moveRight ? 'right' : 'left' 
     });
@@ -559,12 +741,14 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
     if (moveRight) index += 1;
   }
 
-  const finalX = currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
+  const finalX = escapePoint ? escapePoint.x : currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   const finalBounceY = currentLayout.bottom - Math.min(34, currentLayout.rowSpacing * 0.72);
-  path.push({ x: finalX, y: finalBounceY, arc: Math.max(24, currentLayout.rowSpacing * 0.95), finalPegBounce: true });
-  path.push({ x: finalX, y: currentLayout.height - BALL_R - 8, arc: 0, speedScale: 1 });
+  if (!escapePoint) {
+    path.push({ x: finalX, y: finalBounceY, arc: Math.max(24, currentLayout.rowSpacing * 0.95), finalPegBounce: true });
+    path.push({ x: finalX, y: currentLayout.height - BALL_R - 8, arc: 0, speedScale: 1 });
+  }
 
-  return { path, bin: index, color };
+  return { path, bin: escapePoint ? null : index, color, escaped: !!escapePoint };
 };
 
 // renderStats removed - stats cards removed from UI per user request
@@ -653,6 +837,8 @@ const drawBoard = (layout, activeBall = null) => {
       ctx.stroke();
     }
   }
+
+  drawWildcardFlashes();
 
   const activeBalls = Array.isArray(activeBall) ? activeBall : activeBall ? [activeBall] : [];
   for (const ball of activeBalls) {
@@ -1147,6 +1333,10 @@ const runAnimation = (totalBalls, levels, layout) => {
 
         const currentPoint = active.path[active.step];
 
+        if (currentPoint?.deadlockFirework) {
+          triggerWildcardFeedback('firework', currentPoint, allowAudio);
+        }
+
         if (currentPoint && currentPoint.turn) {
           if (allowAudio) playTurnSoundIfEnabled(currentPoint.turn, currentPoint.row);
         }
@@ -1159,6 +1349,10 @@ const runAnimation = (totalBalls, levels, layout) => {
           const peg = currentLayout.rows[rowIdx][colIdx];
           
           const isEffectEnabled = peg && peg.type !== 'normal';
+
+          if (isEffectEnabled && !currentPoint.deadlockFirework) {
+            triggerWildcardFeedback(peg.type, currentPoint, allowAudio);
+          }
 
           if (isEffectEnabled && rowIdx < levels - 1) {
             if (peg.type === 'sticky') {
@@ -1191,7 +1385,9 @@ const runAnimation = (totalBalls, levels, layout) => {
         }
 
         if (active.step >= active.path.length - 1) {
-          currentBins[active.bin] += 1;
+          if (active.bin !== null && active.bin !== undefined) {
+            currentBins[active.bin] += 1;
+          }
           active.trail.push({ x: active.x, y: active.y });
           savePathTrail(active.trail, active.color);
           landedCount += 1;
@@ -1272,6 +1468,7 @@ const stopSimulation = () => {
   timeoutIds = [];
   boardStatus.textContent = 'Stopped';
   if (currentAnimation) currentAnimation.active = [];
+  clearWildcardFlashes();
   if (currentLayout) {
     drawBoard(currentLayout, null);
   }
@@ -1328,6 +1525,7 @@ const startSimulation = (eOrAuto) => {
   }
 
   clearSavedPaths();
+  clearWildcardFlashes();
   currentBins = Array(levels + 1).fill(0);
 
   renderStats(balls, levels, currentBins);

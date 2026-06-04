@@ -13,7 +13,7 @@
 - [x] Gravity and bounce style: add feel presets such as floaty, heavy, pinball, and marble. add one chose toggle: Simple, Gravity.
 
 - [x] design way to publish it in website, ideally with github ci/cd (will it work in free account?). do not implement, just discuss it and make a plan.
-- [ ] Add visual/audio feedback when a wildcard activates. before implementation suggest options
+- [x] Add visual/audio feedback when a wildcard activates. before implementation suggest options
 
 ## Publishing Plan
 
