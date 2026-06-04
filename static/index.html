@@ -9,6 +9,7 @@
 <body>
   <div class="app-shell">
     <button id="settingsPaneToggle" class="settings-pane-toggle" type="button" aria-expanded="true" aria-controls="settingsPane">Hide settings</button>
+    <button id="helpToggle" class="help-toggle" type="button" aria-haspopup="dialog" aria-controls="helpDialog">Help</button>
 
 
     <section id="settingsPane" class="controls">
@@ -276,6 +277,77 @@
     <!-- stats removed: UI simplified to canvas-only histogram -->
 
 
+  </div>
+
+  <div id="helpDialog" class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+    <div class="help-panel">
+      <div class="help-header">
+        <h2 id="helpTitle">Help</h2>
+        <button id="helpClose" class="help-close" type="button" aria-label="Close help">Close</button>
+      </div>
+      <div class="help-content">
+        <section>
+          <h3>Simulation</h3>
+          <p>Drop balls through a Galton board and watch the distribution form in bars or buckets.</p>
+          <ul>
+            <li><strong>Balls</strong>: total balls per run, up to 1,000,000.</li>
+            <li><strong>Levels</strong>: peg rows, from 1 to 20.</li>
+            <li><strong>Runs</strong>: repeats the same setup and can save stats between runs.</li>
+            <li><strong>Right bias</strong>: chance that each normal peg sends the ball right.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Motion</h3>
+          <ul>
+            <li><strong>Speed</strong>: changes animation pacing.</li>
+            <li><strong>Simple</strong>: steady segment timing.</li>
+            <li><strong>Gravity</strong>: uses the Feel preset for heavier or bouncier movement.</li>
+            <li><strong>Background</strong>: keeps simulation time catching up when the tab is not focused.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Launch Modes</h3>
+          <ul>
+            <li><strong>One</strong>: next ball starts after the previous one finishes.</li>
+            <li><strong>lvl2/lvl5</strong>: next ball starts after the current ball reaches that level.</li>
+            <li><strong>Aval</strong>: launches balls in a stream.</li>
+            <li><strong>All</strong>: launches all balls at once.</li>
+            <li><strong>No vis</strong>: calculates results without animating balls.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Wildcards</h3>
+          <ul>
+            <li><strong>+</strong> adds random wildcards. <strong>-</strong> removes matching wildcards. <strong>Off</strong> clears peg states.</li>
+            <li><strong>Mirror</strong> reverses the chosen direction.</li>
+            <li><strong>Magnet</strong> pulls toward the center. <strong>Repeller</strong> pushes away from center.</li>
+            <li><strong>Bumper</strong> jumps across the same row. Auto placement always leaves some non-Bumper pegs in each row.</li>
+            <li><strong>Teleport</strong> disappears and reappears at any peg. After 10 chained Teleports, the ball vanishes with a bright flash.</li>
+            <li><strong>Splitter</strong> creates an extra ball. <strong>Sticky</strong> makes the next bounce weaker. <strong>Chaos</strong> ignores bias.</li>
+            <li><strong>Wildcard</strong> randomly chooses one of the wildcard types.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Display And Sound</h3>
+          <ul>
+            <li><strong>Show paths</strong> saves trails for visible balls.</li>
+            <li><strong>Color turns</strong> colors balls by left/right turns.</li>
+            <li><strong>Ghost overlay</strong> shows the expected binomial curve.</li>
+            <li><strong>Bar stats, Line stats, Label stats</strong> compare saved runs.</li>
+            <li><strong>Sound</strong> controls bounce/turn audio. <strong>Wildcard audio/video</strong> control wildcard feedback.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Limitations</h3>
+          <ul>
+            <li>Only visible balls animate; very large runs are batch-calculated for responsiveness.</li>
+            <li>Changing peg states while balls are moving refreshes each active ball's remaining route from its next peg.</li>
+            <li>Random wildcard placement skips the top row. Sticky also skips the last row.</li>
+            <li>Manual peg clicks can set any peg type and are preserved from random add/remove operations.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
   </div>
 
   <script src="/static/app.js"></script>

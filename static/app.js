@@ -10,6 +10,9 @@ const pauseButton = document.getElementById('pause');
 const stopButton = document.getElementById('stop');
 const appShell = document.querySelector('.app-shell');
 const settingsPaneToggle = document.getElementById('settingsPaneToggle');
+const helpToggle = document.getElementById('helpToggle');
+const helpDialog = document.getElementById('helpDialog');
+const helpClose = document.getElementById('helpClose');
 const soundModeInputs = Array.from(document.querySelectorAll('input[name="soundMode"]'));
 const physicsModeInputs = Array.from(document.querySelectorAll('input[name="physicsMode"]'));
 const pathToggle = document.getElementById('pathToggle');
@@ -1744,6 +1747,29 @@ if (settingsPaneToggle && appShell) {
     settingsPaneToggle.textContent = isCollapsed ? 'Show settings' : 'Hide settings';
     settingsPaneToggle.setAttribute('aria-expanded', `${!isCollapsed}`);
     requestAnimationFrame(resizeCanvas);
+  });
+}
+
+const openHelpDialog = () => {
+  if (!helpDialog) return;
+  helpDialog.hidden = false;
+  helpClose?.focus();
+};
+
+const closeHelpDialog = () => {
+  if (!helpDialog) return;
+  helpDialog.hidden = true;
+  helpToggle?.focus();
+};
+
+if (helpToggle && helpDialog) {
+  helpToggle.addEventListener('click', openHelpDialog);
+  helpClose?.addEventListener('click', closeHelpDialog);
+  helpDialog.addEventListener('click', (event) => {
+    if (event.target === helpDialog) closeHelpDialog();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !helpDialog.hidden) closeHelpDialog();
   });
 }
 
