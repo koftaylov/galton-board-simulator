@@ -1312,7 +1312,17 @@ const runAnimation = (totalBalls, levels, layout) => {
     
     runsRemaining -= 1;
     if (runsRemaining > 0 && !cancelFlag) {
-      scheduleTimeout(() => startSimulation(true), 150); // slight delay before next run
+      currentAnimation = { active: [], mode: getLaunchMode() };
+      const startNextRunWhenReady = () => {
+        if (cancelFlag) return;
+        if (isPaused) {
+          boardStatus.textContent = 'Paused';
+          scheduleTimeout(startNextRunWhenReady, 100);
+          return;
+        }
+        startSimulation(true);
+      };
+      scheduleTimeout(startNextRunWhenReady, 150); // slight delay before next run
     } else {
       generateButton.disabled = false;
     }
@@ -1323,6 +1333,12 @@ const runAnimation = (totalBalls, levels, layout) => {
       boardStatus.textContent = 'Stopped';
       generateButton.disabled = false;
       clearAllTimeouts();
+      return;
+    }
+
+    if (isPaused) {
+      boardStatus.textContent = 'Paused';
+      scheduleTimeout(runNoVisBatch, 100);
       return;
     }
 
@@ -1366,7 +1382,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     if (launchMode === 'no-vis') {
       // Batched calculation keeps Stop responsive during large or repeated runs.
       boardStatus.textContent = `Calculating ${totalBalls} balls...`;
-      currentAnimation = { active: [] };
+      currentAnimation = { active: [], mode: 'no-vis' };
       runNoVisBatch();
       return;
     }
@@ -1378,7 +1394,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     }
 
     boardStatus.textContent = `Animating ${totalBalls} ball${totalBalls === 1 ? '' : 's'}`;
-    currentAnimation = { active: activeBalls };
+    currentAnimation = { active: activeBalls, mode: launchMode };
     rafId = requestAnimationFrame(animateFrame);
   };
 
@@ -1604,10 +1620,13 @@ const stopSimulation = () => {
 };
 
 const togglePause = () => {
-  if (!currentAnimation || !currentAnimation.active) return;
-  if (currentAnimation.active.length === 0 && nextIndex >= totalBalls) return;
+  if (!currentAnimation) return;
+  const canPauseActiveList = Array.isArray(currentAnimation.active);
+  const canPauseQueuedRun = runsRemaining > 0 && generateButton.disabled;
+  if (!canPauseActiveList && !canPauseQueuedRun) return;
   isPaused = !isPaused;
   if (pauseButton) pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
+  boardStatus.textContent = isPaused ? 'Paused' : 'Resuming';
 };
 
 const startSimulation = (eOrAuto) => {
