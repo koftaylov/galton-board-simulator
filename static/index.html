@@ -33,6 +33,39 @@
         Runs:
         <input id="runs" type="number" min="1" max="10000" value="1" />
       </label>
+      <div class="button-group">
+        <button id="generate">Simulate</button>
+        <button id="pause" class="pause">Pause</button>
+        <button id="stop" class="stop">Stop</button>
+        <button id="clearPegs" class="clear">Clear</button>
+      </div>
+      <fieldset class="mode-selector" aria-label="Launch mode">
+        <legend>Launching mode:</legend>
+        <label>
+          <input type="radio" name="launchMode" value="finish" checked />
+          <span>One</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="level5" />
+          <span>lvl5</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="level2" />
+          <span>lvl2</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="avalanche" />
+          <span>Aval</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="all" />
+          <span>All</span>
+        </label>
+        <label>
+          <input type="radio" name="launchMode" value="no-vis" />
+          <span>No vis</span>
+        </label>
+      </fieldset>
       <fieldset class="physics-selector" aria-label="Physics mode">
         <legend>Physics:</legend>
         <label>
@@ -64,7 +97,6 @@
         <div class="toolbar-label">Wildcards:</div>
         <fieldset class="wildcard-operation-selector" aria-label="Wildcard operation">
           <legend class="visually-hidden">Wildcard operation</legend>
-          <button id="clearWildcardStates" class="wildcard-off-button" type="button">Off</button>
           <label>
             <input type="radio" name="wildcardOperation" value="add" checked />
             <span>+</span>
@@ -74,6 +106,7 @@
             <span>-</span>
           </label>
         </fieldset>
+        <button id="clearWildcardStates" class="wildcard-off-button" type="button">Off</button>
         <div class="toggle-group wildcard-feedback-toolbar">
           <label class="toggle-control wildcard-feedback-control">
             <input id="wildcardAudioToggle" type="checkbox" checked />
@@ -124,39 +157,6 @@
           <span>Wildcard</span>
         </label>
       </fieldset>
-      <fieldset class="mode-selector" aria-label="Launch mode">
-        <legend>Launching mode:</legend>
-        <label>
-          <input type="radio" name="launchMode" value="finish" checked />
-          <span>One</span>
-        </label>
-        <label>
-          <input type="radio" name="launchMode" value="level5" />
-          <span>lvl5</span>
-        </label>
-        <label>
-          <input type="radio" name="launchMode" value="level2" />
-          <span>lvl2</span>
-        </label>
-        <label>
-          <input type="radio" name="launchMode" value="avalanche" />
-          <span>Aval</span>
-        </label>
-        <label>
-          <input type="radio" name="launchMode" value="all" />
-          <span>All</span>
-        </label>
-        <label>
-          <input type="radio" name="launchMode" value="no-vis" />
-          <span>No vis</span>
-        </label>
-      </fieldset>
-      <div class="button-group">
-        <button id="generate">Simulate</button>
-        <button id="pause" class="pause">Pause</button>
-        <button id="stop" class="stop">Stop</button>
-        <button id="clearPegs" class="clear">Clear</button>
-      </div>
       <fieldset class="sound-selector" aria-label="Sound mode">
         <legend>Sound:</legend>
         <label>

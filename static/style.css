@@ -255,6 +255,7 @@ body {
 .stats-toggle-selector label,
 .current-label-selector label,
 .label-stat-selector label {
+  flex: 1;
   min-width: 0;
 }
 
@@ -283,6 +284,8 @@ body {
   align-items: center;
   justify-content: center;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   height: 40px;
   padding: 0 12px;
   border: 1px solid #334155;
@@ -296,7 +299,7 @@ body {
 
 .wildcard-toolbar {
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
+  grid-template-columns: 80px 72px minmax(0, 1fr);
   gap: 8px;
   grid-column: 1 / -1;
   min-width: 0;
@@ -326,26 +329,25 @@ body {
   flex: 1;
 }
 
-.wildcard-operation-selector .wildcard-off-button {
-  flex: 1;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid #334155;
-  border-radius: 8px 0 0 8px;
-  background: #0f172a;
-  color: #cbd5e1;
-  font-size: 14px;
-}
-
 .wildcard-operation-selector label:first-of-type span {
-  border-radius: 0;
+  border-radius: 8px 0 0 8px;
 }
 
 .wildcard-operation-selector label:last-of-type span {
   border-radius: 0 8px 8px 0;
 }
 
-.wildcard-operation-selector .wildcard-off-button:hover {
+.wildcard-off-button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.wildcard-off-button:hover {
   border-color: #cbd5e1;
   background: rgba(203, 213, 225, 0.15);
 }
@@ -395,7 +397,12 @@ body {
 .stats-toggle-selector span,
 .current-label-selector span,
 .label-stat-selector span {
-  padding: 0 10px;
+  padding: 0 8px;
+}
+
+.mode-selector span {
+  padding: 0 6px;
+  font-size: 13px;
 }
 
 .physics-selector {
@@ -579,10 +586,15 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
+.wildcard-selector label:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .button-group {
   display: flex;
   gap: 8px;
   grid-column: 1 / -1;
+  order: -1;
 }
 
 .button-group button {
