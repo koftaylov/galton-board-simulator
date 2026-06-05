@@ -583,6 +583,9 @@ const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
   if (!canAutoPlaceWildcardType(rowIndex, 'bumper')) {
     blockedTypes.push('bumper');
   }
+  if (currentLayout && rowIndex === currentLayout.rows.length - 1) {
+    blockedTypes.push('sticky');
+  }
 
   const available = selectedWildcards.filter(type => !blockedTypes.includes(type));
   if (available.length === 0) return null;
@@ -591,6 +594,9 @@ const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
   if (blockedTypes.includes(resolved)) {
     const fallback = ['mirror', 'magnet', 'repeller', 'teleport', 'splitter', 'sticky', 'chaos']
       .find(type => available.includes(type) || selectedWildcards.includes('wildcard'));
+    
+    // Fallback should also respect blocked types
+    if (fallback === 'sticky' && blockedTypes.includes('sticky')) return null;
     return fallback || null;
   }
   return resolved;
@@ -1793,16 +1799,20 @@ boardCanvas.addEventListener('click', (e) => {
 
   const types = ['normal', 'mirror', 'magnet', 'repeller', 'bumper', 'teleport', 'splitter', 'sticky', 'chaos'];
   
-  for (const row of currentLayout.rows) {
+  for (let r = 0; r < currentLayout.rows.length; r++) {
+    const row = currentLayout.rows[r];
+    const isLastRow = r === currentLayout.rows.length - 1;
+    const allowedTypes = isLastRow ? types.filter(t => t !== 'sticky') : types;
+
     for (const peg of row) {
       const dx = mouseX - peg.x;
       const dy = mouseY - peg.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
       if (dist <= PEG_R + 10) { // generous hit area
-        const currentIdx = types.indexOf(peg.type || 'normal');
-        const nextIdx = (currentIdx + 1) % types.length;
-        peg.type = types[nextIdx];
+        const currentIdx = allowedTypes.indexOf(peg.type || 'normal');
+        const nextIdx = (currentIdx + 1) % allowedTypes.length;
+        peg.type = allowedTypes[nextIdx];
         peg.manual = true; // Protect from random sprinkling
         
         refreshActiveBallPaths();
