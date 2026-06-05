@@ -1,4 +1,4 @@
-# Standard Distribution Visualization
+# Galton Board Simulator
 
 A browser-based Galton board simulator for exploring normal distribution, launch modes, wildcard peg behavior, saved histogram overlays, and sound/effect feedback.
 
@@ -31,4 +31,4 @@ GitHub Pages is deployed from the `main` branch using the Pages workflow.
 
 Live site:
 
-https://koftaylov.github.io/standard-distribution-vis/
+https://koftaylov.github.io/galton-board-simulator/

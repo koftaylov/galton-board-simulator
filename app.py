@@ -7,8 +7,8 @@ from fastapi.staticfiles import StaticFiles
 
 BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI(
-    title="Standard Distribution Visualization",
-    description="A simple Python FastAPI backend for Galton board distribution visualization.",
+    title="Galton Board Simulator",
+    description="A simple Python FastAPI backend for the Galton Board Simulator.",
     version="0.1.0",
 )
 
