@@ -830,8 +830,11 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
         row += 2;
         index = clamp(decisionIndex + 1, 0, row);
         stickyDropping = true;
+      } else if (row + 1 === levels) {
+        index = clamp(side === 1 ? decisionIndex + 1 : decisionIndex, 0, levels);
+        row = levels;
       } else {
-        index = clamp(decisionIndex, 0, levels);
+        index = clamp(decisionIndex + 1, 0, levels);
         row = levels;
       }
       continue;
