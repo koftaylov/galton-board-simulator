@@ -170,6 +170,13 @@ body {
   line-height: 1.35;
 }
 
+.help-made-with {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
 .controls {
   box-sizing: border-box;
   display: grid;
