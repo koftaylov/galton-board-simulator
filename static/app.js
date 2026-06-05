@@ -919,8 +919,6 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
     });
     arrivedFromJump = false;
     stickyDropping = false;
-    jumpCount = 0;
-    teleportCount = 0;
 
     color = blendColors(color, moveRight ? RIGHT_TURN_COLOR : LEFT_TURN_COLOR, 0.18);
     index = decisionIndex;
