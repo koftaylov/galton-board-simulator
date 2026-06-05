@@ -800,8 +800,9 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
           col: decisionIndex,
           arc: currentLayout.rowSpacing * 0.9,
           speedScale: 6,
+          isEjected: true,
         });
-        escapePoint = { x: throwX, y: throwY };
+        escapePoint = { x: throwX, y: throwY, isEjected: true };
         break;
       }
 
