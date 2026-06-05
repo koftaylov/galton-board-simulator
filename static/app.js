@@ -730,6 +730,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
         y: touchY,
         row,
         col: decisionIndex,
+        pegType: peg.type,
         speedScale: arrivedFromJump ? TELEPORT_SPEED_SCALE : undefined,
         arc: arrivedFromJump ? 0 : undefined,
         teleportArrival: arrivedFromJump && !isBumper,
@@ -787,7 +788,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       break;
     }
 
-    if (peg.type === 'sticky' && row + 2 < levels) {
+    if (peg.type === 'sticky') {
       const stickyY = peg.y - (PEG_R + BALL_R - 1);
       const side = Math.random() < 0.5 ? -1 : 1;
       path.push({
@@ -795,13 +796,21 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
         y: stickyY,
         row,
         col: decisionIndex,
+        pegType: peg.type,
+        speedScale: arrivedFromJump ? TELEPORT_SPEED_SCALE : undefined,
+        arc: arrivedFromJump ? 0 : undefined,
+        teleportArrival: arrivedFromJump,
         isStickyContact: true,
       });
+      arrivedFromJump = false;
+      jumpCount = 0;
+      teleportCount = 0;
       path.push({
         x: peg.x + side * (PEG_R + BALL_R * 0.72),
         y: peg.y - BALL_R * 0.25,
         row,
         col: decisionIndex,
+        pegType: peg.type,
         arc: 0,
         speedScale: 0.32,
         isStickySlide: true,
@@ -811,14 +820,20 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
         y: peg.y + PEG_R + BALL_R * 0.25,
         row,
         col: decisionIndex,
+        pegType: peg.type,
         arc: 0,
         speedScale: 0.34,
         isStickySlide: true,
       });
 
-      row += 2;
-      index = clamp(decisionIndex + 1, 0, row);
-      stickyDropping = true;
+      if (row + 2 < levels) {
+        row += 2;
+        index = clamp(decisionIndex + 1, 0, row);
+        stickyDropping = true;
+      } else {
+        index = clamp(decisionIndex, 0, levels);
+        row = levels;
+      }
       continue;
     }
     
@@ -855,6 +870,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       y: peg.y - (PEG_R + BALL_R - 1),
       row, 
       col: decisionIndex,
+      pegType: peg.type,
       speedScale: arrivedFromJump ? TELEPORT_SPEED_SCALE : undefined,
       arc: arrivedFromJump || stickyDropping ? 0 : undefined,
       teleportArrival: arrivedFromJump,
@@ -1556,23 +1572,24 @@ const runAnimation = (totalBalls, levels, layout) => {
           const rowIdx = currentPoint.row;
           const colIdx = currentPoint.col;
           const peg = currentLayout.rows[rowIdx][colIdx];
+          const pegType = currentPoint.pegType || peg?.type || 'normal';
           
-          const isEffectEnabled = peg && peg.type !== 'normal';
+          const isEffectEnabled = pegType !== 'normal';
 
           // Sticky is handled as a quiet stuck-slide path; keep this disabled so it has no sound/effect flash.
-          // if (isEffectEnabled && peg.type === 'sticky' && !currentPoint.deadlockFirework) {
-          //   triggerWildcardFeedback(peg.type, currentPoint, allowAudio);
+          // if (isEffectEnabled && pegType === 'sticky' && !currentPoint.deadlockFirework) {
+          //   triggerWildcardFeedback(pegType, currentPoint, allowAudio);
           // }
-          if (isEffectEnabled && peg.type !== 'sticky' && !currentPoint.deadlockFirework) {
-            triggerWildcardFeedback(peg.type, currentPoint, allowAudio);
+          if (isEffectEnabled && pegType !== 'sticky' && !currentPoint.deadlockFirework) {
+            triggerWildcardFeedback(pegType, currentPoint, allowAudio);
           }
 
           if (isEffectEnabled && rowIdx < levels - 1) {
             // Sticky no longer weak-bounces; it sticks, slides around the peg, then drops via precomputed path points.
-            // if (peg.type === 'sticky') {
+            // if (pegType === 'sticky') {
             //   active.stickyEffect = { speedMult: 1.1, arcScale: 0.45 };
             // } else
-            if (peg.type === 'splitter') {
+            if (pegType === 'splitter') {
               const sibling = makeActiveBall(
                 -1, // -1 ensures siblings don't hijack the main launch sequence index
                 simulateBallPath(levels, getRightBias(), rowIdx + 1, colIdx, active.color),
