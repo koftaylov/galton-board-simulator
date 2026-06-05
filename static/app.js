@@ -781,7 +781,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
           x: outX,
           y: finalDropY,
           arc: 0,
-          speedScale: 1,
+          speedScale: 1.15,
           isEjected: true,
         });
         escapePoint = { disappeared: true, isEjected: true };
@@ -1577,7 +1577,8 @@ const runAnimation = (totalBalls, levels, layout) => {
       const segmentAmplitude = isInstantTeleportSegment ? 0 : (to.arc ?? active.amplitude) * feel.arcScale * stickyArcScale * active.arcScale;
       const arc = Math.sin(Math.PI * t) * segmentAmplitude;
       active.x = from.x + (to.x - from.x) * t;
-      active.y = from.y + (to.y - from.y) * motionT - arc;
+      const effectiveMotionT = to.isEjected ? t : motionT;
+      active.y = from.y + (to.y - from.y) * effectiveMotionT - arc;
       const lastTrailPoint = active.trail[active.trail.length - 1];
       const dx = active.x - lastTrailPoint.x;
       const dy = active.y - lastTrailPoint.y;
