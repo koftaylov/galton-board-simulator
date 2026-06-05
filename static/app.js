@@ -771,8 +771,10 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
           y: outY,
           row,
           col: decisionIndex,
-          arc: currentLayout.rowSpacing * 1.5,
-          speedScale: 5,
+          arc: 0,
+          speedScale: 1,
+          teleportArrival: true,
+          isEjected: true,
         });
         const finalDropY = currentLayout.height + BALL_R * 10;
         path.push({
