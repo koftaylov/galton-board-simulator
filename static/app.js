@@ -1830,6 +1830,7 @@ boardCanvas.addEventListener('mousemove', (e) => {
 
 const clearBoardPegs = () => {
   if (!currentLayout) return;
+  const isStopped = !currentAnimation?.active || currentAnimation.active.length === 0;
   for (const row of currentLayout.rows) {
     for (const peg of row) {
       peg.type = 'normal';
@@ -1838,6 +1839,9 @@ const clearBoardPegs = () => {
   }
   historicalStats = []; // Clear history on board clear
   clearStatsHighlight();
+  if (isStopped) {
+    currentBins = Array(currentLayout.rows.length + 1).fill(0);
+  }
   // Uncheck all toggles to reset the 'brush'
   wildcardTypeInputs.forEach(input => input.checked = false);
   refreshActiveBallPaths();
