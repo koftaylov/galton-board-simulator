@@ -763,7 +763,25 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       else teleportCount += 1;
 
       if (willTeleportVanish) {
-        escapePoint = { disappeared: true };
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const outX = currentLayout.center + side * (currentLayout.pegSpacing * (levels / 2 + 3 + Math.random() * 2));
+        const outY = currentLayout.top + Math.random() * (currentLayout.bottom - currentLayout.top);
+        path.push({
+          x: outX,
+          y: outY,
+          row,
+          col: decisionIndex,
+          arc: currentLayout.rowSpacing * 1.5,
+          speedScale: 5,
+        });
+        const finalDropY = currentLayout.height + BALL_R * 10;
+        path.push({
+          x: outX,
+          y: finalDropY,
+          arc: 0,
+          speedScale: 1.5,
+        });
+        escapePoint = { disappeared: true, isEjected: true };
         break;
       }
 
@@ -1389,7 +1407,11 @@ const runAnimation = (totalBalls, levels, layout) => {
 
     for (; nextIndex < totalBalls; nextIndex += 1) {
       const result = simulateBallPath(levels, getRightBias());
-      if (result.bin !== null) currentBins[result.bin] += 1;
+      if (result.isEjected) {
+        launchedCount -= 1;
+      } else if (result.bin !== null) {
+        currentBins[result.bin] += 1;
+      }
       launchedCount += 1;
       if (isPathSavingEnabled) {
         savePathTrail(result.path, result.color);
@@ -1643,11 +1665,14 @@ const runAnimation = (totalBalls, levels, layout) => {
         if (active.step >= active.path.length - 1) {
           if (active.bin !== null && active.bin !== undefined) {
             currentBins[active.bin] += 1;
+          } else if (currentPoint?.isEjected) {
+            launchedCount -= 1;
+            updateLaunchCounter(launchedCount, totalBalls);
           }
           active.trail.push({ x: active.x, y: active.y });
           savePathTrail(active.trail, active.color);
           landedCount += 1;
-          shouldPlayLanding = !currentPoint?.teleportVanish;
+          shouldPlayLanding = !currentPoint?.teleportVanish && !currentPoint?.isEjected;
           activeBalls.splice(i, 1);
 
           if (launchMode === 'finish' && active.index === nextIndex - 1) startNextBall();
