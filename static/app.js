@@ -833,9 +833,11 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       } else if (row + 1 === levels) {
         index = clamp(side === 1 ? decisionIndex + 1 : decisionIndex, 0, levels);
         row = levels;
+        stickyDropping = true;
       } else {
         index = clamp(decisionIndex + 1, 0, levels);
         row = levels;
+        stickyDropping = true;
       }
       continue;
     }
@@ -893,7 +895,8 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   const finalX = escapePoint ? escapePoint.x : currentLayout.center + (index - levels / 2) * currentLayout.pegSpacing;
   const finalBounceY = currentLayout.bottom - Math.min(34, currentLayout.rowSpacing * 0.72);
   if (!escapePoint) {
-    path.push({ x: finalX, y: finalBounceY, arc: Math.max(24, currentLayout.rowSpacing * 0.95), finalPegBounce: true });
+    const finalArc = stickyDropping ? 0 : Math.max(24, currentLayout.rowSpacing * 0.95);
+    path.push({ x: finalX, y: finalBounceY, arc: finalArc, finalPegBounce: true });
     path.push({ x: finalX, y: currentLayout.height - BALL_R - 8, arc: 0, speedScale: 1 });
   }
 
