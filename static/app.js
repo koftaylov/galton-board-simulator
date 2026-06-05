@@ -781,7 +781,8 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
           x: outX,
           y: finalDropY,
           arc: 0,
-          speedScale: 1.5,
+          speedScale: 1,
+          isEjected: true,
         });
         escapePoint = { disappeared: true, isEjected: true };
         break;
@@ -1346,7 +1347,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     const speedScale = to.speedScale || 1;
     const feel = getFeelSettings();
     const landingScale = to.arc === 0 ? feel.landingSpeed : 1;
-    const segmentDistanceRatio = to.arc === 0 ? 1 : distanceRatio;
+    const segmentDistanceRatio = (to.arc === 0 && !to.isEjected) ? 1 : distanceRatio;
     return Math.max(1, (getFramesPerStep() * speedMult * segmentDistanceRatio * feel.frameScale) / (speedScale * landingScale));
   };
   const getLandingThresholdY = (bin) => {
