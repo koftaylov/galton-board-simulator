@@ -665,16 +665,18 @@ const applyWildcardCommand = (type) => {
 };
 
 const getRandomPegTarget = (excludeRow = null, excludeCol = null) => {
-  if (!currentLayout) return null;
-  const targets = [];
-  for (let row = 0; row < currentLayout.rows.length; row += 1) {
-    for (let col = 0; col < currentLayout.rows[row].length; col += 1) {
-      if (row !== excludeRow || col !== excludeCol) {
-        targets.push({ row, col, peg: currentLayout.rows[row][col] });
-      }
-    }
+  if (!currentLayout || !currentLayout.allPegs || currentLayout.allPegs.length <= 1) return null;
+  
+  // O(1) random selection with a single retry if we hit the excluded peg
+  let idx = Math.floor(Math.random() * currentLayout.allPegs.length);
+  let target = currentLayout.allPegs[idx];
+  
+  if (target.row === excludeRow && target.col === excludeCol) {
+    idx = (idx + 1) % currentLayout.allPegs.length;
+    target = currentLayout.allPegs[idx];
   }
-  return targets[Math.floor(Math.random() * targets.length)] || null;
+  
+  return target;
 };
 
 const buildLayout = (levels) => {
@@ -686,6 +688,7 @@ const buildLayout = (levels) => {
   const pegSpacing = Math.min(54, width / (levels + 4));
   const center = width / 2;
   const rows = [];
+  const allPegs = [];
   
   for (let row = 0; row < levels; row += 1) {
     const items = row + 1;
@@ -693,13 +696,14 @@ const buildLayout = (levels) => {
     const rowPositions = [];
     for (let col = 0; col < items; col += 1) {
       const x = center + (col - row / 2) * pegSpacing;
-      // Start all pegs as 'normal' by default for the manual editor
-      rowPositions.push({ x, y, type: 'normal', manual: false });
+      const peg = { x, y, type: 'normal', manual: false };
+      rowPositions.push(peg);
+      allPegs.push({ row, col, peg });
     }
     rows.push(rowPositions);
   }
 
-  return { width, height, top, bottom, rowSpacing, pegSpacing, center, rows };
+  return { width, height, top, bottom, rowSpacing, pegSpacing, center, rows, allPegs };
 };
 
 const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, startColor = null) => {
@@ -721,17 +725,23 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   let arrivedFromJump = false;
   let jumpCount = 0;
   let teleportCount = 0;
+  let totalJumps = 0;
+  let totalSteps = 0;
   let stickyDropping = false;
 
-  while (row < levels) {
+  const MAX_TOTAL_JUMPS = 100;
+  const MAX_TOTAL_STEPS = 1500;
+
+  while (row < levels && totalSteps < MAX_TOTAL_STEPS) {
+    totalSteps += 1;
     let peg = currentLayout.rows[row][index];
     let decisionIndex = index;
     let touchY = peg.y - (PEG_R + BALL_R - 1);
 
-    while (peg.type === 'bumper' || peg.type === 'teleport') {
+    while ((peg.type === 'bumper' || peg.type === 'teleport') && totalJumps < MAX_TOTAL_JUMPS) {
       const isBumper = peg.type === 'bumper';
-      const willBumperDeadlock = isBumper && jumpCount + 1 >= TELEPORT_DEADLOCK_LIMIT;
-      const willTeleportVanish = !isBumper && teleportCount + 1 >= TELEPORT_DEADLOCK_LIMIT;
+      const willBumperDeadlock = isBumper && (jumpCount + 1 >= TELEPORT_DEADLOCK_LIMIT || totalJumps + 1 >= MAX_TOTAL_JUMPS);
+      const willTeleportVanish = !isBumper && (teleportCount + 1 >= TELEPORT_DEADLOCK_LIMIT || totalJumps + 1 >= MAX_TOTAL_JUMPS);
       path.push({
         x: peg.x,
         y: touchY,
@@ -748,6 +758,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       });
 
       arrivedFromJump = false;
+      totalJumps += 1;
       if (isBumper) jumpCount += 1;
       else teleportCount += 1;
 
@@ -1378,7 +1389,7 @@ const runAnimation = (totalBalls, levels, layout) => {
 
     for (; nextIndex < totalBalls; nextIndex += 1) {
       const result = simulateBallPath(levels, getRightBias());
-      currentBins[result.bin] += 1;
+      if (result.bin !== null) currentBins[result.bin] += 1;
       launchedCount += 1;
       if (isPathSavingEnabled) {
         savePathTrail(result.path, result.color);
@@ -1439,7 +1450,7 @@ const runAnimation = (totalBalls, levels, layout) => {
     const batchEnd = noVisIndex + batchSize;
     for (; noVisIndex < batchEnd; noVisIndex += 1) {
       const result = simulateBallPath(levels, getRightBias());
-      currentBins[result.bin] += 1;
+      if (result.bin !== null) currentBins[result.bin] += 1;
       if (isPathSavingEnabled) {
         savePathTrail(result.path, result.color);
       }
