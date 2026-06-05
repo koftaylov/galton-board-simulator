@@ -87,6 +87,10 @@ const BASE_ROW_SPACING = (BASE_CANVAS_HEIGHT - HISTOGRAM_RESERVED_HEIGHT - BASE_
 const TELEPORT_DEADLOCK_LIMIT = 10;
 const TELEPORT_SPEED_SCALE = 2;
 const TELEPORT_VANISH_FRAMES = 7;
+const BALL_PACE_MIN = 0.94;
+const BALL_PACE_MAX = 1.08;
+const BALL_ARC_MIN = 0.94;
+const BALL_ARC_MAX = 1.08;
 const STATS_HIGHLIGHT_MS = 3500;
 
 const WILDCARD_COLORS = {
@@ -330,6 +334,7 @@ const resizeCanvas = () => {
 window.addEventListener('resize', resizeCanvas);
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const randomInRange = (min, max) => min + (Math.random() * (max - min));
 const getRightBias = () => clamp(parseInt(biasInput?.value, 10) || 0, 0, 100) / 100;
 const blendColors = (base, next, amount) => ({
   r: Math.round(base.r + (next.r - base.r) * amount),
@@ -1321,6 +1326,8 @@ const runAnimation = (totalBalls, levels, layout) => {
       x: result.path[0].x,
       y: result.path[0].y,
       amplitude: 18,
+      paceScale: randomInRange(BALL_PACE_MIN, BALL_PACE_MAX),
+      arcScale: randomInRange(BALL_ARC_MIN, BALL_ARC_MAX),
       spawnedNext: false,
       stickyEffect: null,
       trail: [{ x: result.path[0].x, y: result.path[0].y }],
@@ -1495,7 +1502,7 @@ const runAnimation = (totalBalls, levels, layout) => {
 
       // Sticky effect: the next hop after contact is slower and less springy.
       const isInstantTeleportSegment = from?.isTeleport && to?.teleportArrival;
-      const speedMult = active.stickyEffect ? active.stickyEffect.speedMult : 1;
+      const speedMult = (active.stickyEffect ? active.stickyEffect.speedMult : 1) * active.paceScale;
       const framesPerStep = isInstantTeleportSegment ? TELEPORT_VANISH_FRAMES : getFramesForSegment(from, to, speedMult);
       
       active.progress += 1 / framesPerStep;
@@ -1504,7 +1511,7 @@ const runAnimation = (totalBalls, levels, layout) => {
       const feel = getFeelSettings();
       const motionT = feel.verticalPower === 1 ? t : Math.pow(t, feel.verticalPower);
       const stickyArcScale = active.stickyEffect ? active.stickyEffect.arcScale : 1;
-      const segmentAmplitude = isInstantTeleportSegment ? 0 : (to.arc ?? active.amplitude) * feel.arcScale * stickyArcScale;
+      const segmentAmplitude = isInstantTeleportSegment ? 0 : (to.arc ?? active.amplitude) * feel.arcScale * stickyArcScale * active.arcScale;
       const arc = Math.sin(Math.PI * t) * segmentAmplitude;
       active.x = from.x + (to.x - from.x) * t;
       active.y = from.y + (to.y - from.y) * motionT - arc;
