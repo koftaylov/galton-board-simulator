@@ -781,7 +781,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
           x: outX,
           y: finalDropY,
           arc: 0,
-          speedScale: 1.15,
+          speedScale: 1.5,
           isEjected: true,
         });
         escapePoint = { disappeared: true, isEjected: true };
