@@ -709,6 +709,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
   let arrivedFromJump = false;
   let jumpCount = 0;
   let teleportCount = 0;
+  let stickyDropping = false;
 
   while (row < levels) {
     let peg = currentLayout.rows[row][index];
@@ -789,8 +790,6 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
         y: stickyY,
         row,
         col: decisionIndex,
-        arc: 0,
-        speedScale: 0.7,
         isStickyContact: true,
       });
       path.push({
@@ -814,6 +813,7 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
 
       row += 2;
       index = clamp(decisionIndex + 1, 0, row);
+      stickyDropping = true;
       continue;
     }
     
@@ -851,11 +851,12 @@ const simulateBallPath = (levels, rightBias, startRow = 0, startIndex = 0, start
       row, 
       col: decisionIndex,
       speedScale: arrivedFromJump ? TELEPORT_SPEED_SCALE : undefined,
-      arc: arrivedFromJump ? 0 : undefined,
+      arc: arrivedFromJump || stickyDropping ? 0 : undefined,
       teleportArrival: arrivedFromJump,
       turn: moveRight ? 'right' : 'left' 
     });
     arrivedFromJump = false;
+    stickyDropping = false;
     jumpCount = 0;
     teleportCount = 0;
 
