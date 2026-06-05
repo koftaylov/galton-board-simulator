@@ -580,7 +580,7 @@ const canAutoPlaceWildcardType = (rowIndex, type) => {
 
 const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
   const blockedTypes = [];
-  if (!canAutoPlaceWildcardType(rowIndex, 'bumper')) {
+  if (!canAutoPlaceWildcardType(rowIndex, 'bumper') || rowIndex === 0) {
     blockedTypes.push('bumper');
   }
   if (currentLayout && rowIndex === currentLayout.rows.length - 1) {
@@ -597,6 +597,7 @@ const resolveAutoWildcardTypeForPeg = (selectedWildcards, rowIndex) => {
     
     // Fallback should also respect blocked types
     if (fallback === 'sticky' && blockedTypes.includes('sticky')) return null;
+    if (fallback === 'bumper' && blockedTypes.includes('bumper')) return null;
     return fallback || null;
   }
   return resolved;
@@ -1802,7 +1803,12 @@ boardCanvas.addEventListener('click', (e) => {
   for (let r = 0; r < currentLayout.rows.length; r++) {
     const row = currentLayout.rows[r];
     const isLastRow = r === currentLayout.rows.length - 1;
-    const allowedTypes = isLastRow ? types.filter(t => t !== 'sticky') : types;
+    const isFirstRow = r === 0;
+    const allowedTypes = types.filter(t => {
+      if (isLastRow && t === 'sticky') return false;
+      if (isFirstRow && t === 'bumper') return false;
+      return true;
+    });
 
     for (const peg of row) {
       const dx = mouseX - peg.x;
